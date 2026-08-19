@@ -8,22 +8,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Create Android debug keystore
+      - name: Create debug keystore
         run: |
-          mkdir -p "$HOME/.android"
+          mkdir -p "$HOME/.config/android"
 
           keytool -genkeypair \
             -v \
-            -keystore "$HOME/.android/debug.keystore" \
+            -keystore "$HOME/.config/android/debug.keystore" \
             -storepass android \
             -alias AndroidDebugKey \
             -keypass android \
@@ -32,19 +29,16 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Check keystore
+      - name: Get SHA-1
         run: |
-          ls -l "$HOME/.android/debug.keystore"
+          echo "=============================="
+          echo "ANDROID DEBUG SHA-1"
+          echo "=============================="
+
           keytool -list \
             -v \
-            -keystore "$HOME/.android/debug.keystore" \
+            -keystore "$HOME/.config/android/debug.keystore" \
             -storepass android \
-            -alias AndroidDebugKey
+            -alias AndroidDebugKey | grep -E "SHA1:|SHA256:"
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
-
-      - name: Get SHA-1
-        run: gradle signingReport
+          echo "=============================="
