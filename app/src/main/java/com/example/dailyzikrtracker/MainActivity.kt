@@ -79,20 +79,26 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DailyZikrTheme {
+
                 if (auth.currentUser == null) {
+
                     LoginScreen(
                         onGoogleClick = {
                             signInWithGoogle()
                         }
                     )
+
                 } else {
+
                     MainApp(
                         userName = auth.currentUser?.displayName ?: "User",
+
                         onLogout = {
                             auth.signOut()
                             googleClient.signOut()
                             recreate()
                         },
+
                         db = db,
                         auth = auth
                     )
@@ -114,35 +120,46 @@ class MainActivity : ComponentActivity() {
         resultCode: Int,
         data: Intent?
     ) {
-        super.onActivityResult(requestCode, resultCode, data)
+        super.onActivityResult(
+            requestCode,
+            resultCode,
+            data
+        )
 
         if (requestCode == RC_SIGN_IN) {
+
             try {
+
                 val account = GoogleSignIn
                     .getSignedInAccountFromIntent(data)
                     .getResult(ApiException::class.java)
 
-                val credential = GoogleAuthProvider.getCredential(
-                    account.idToken,
-                    null
-                )
+                val credential =
+                    GoogleAuthProvider.getCredential(
+                        account.idToken,
+                        null
+                    )
 
                 auth.signInWithCredential(credential)
                     .addOnCompleteListener(this) { task ->
 
                         if (!task.isSuccessful) {
+
                             Toast.makeText(
                                 this,
                                 task.exception?.message
                                     ?: "Google sign-in failed",
                                 Toast.LENGTH_LONG
                             ).show()
+
                         } else {
+
                             recreate()
                         }
                     }
 
             } catch (e: ApiException) {
+
                 Toast.makeText(
                     this,
                     "Google sign-in failed",
@@ -165,19 +182,25 @@ fun MainApp(
     db: FirebaseFirestore,
     auth: FirebaseAuth
 ) {
+
     val navController = rememberNavController()
 
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute =
-        currentBackStackEntry?.destination?.route
+    var selectedScreen by remember {
+        mutableStateOf("home")
+    }
 
     Scaffold(
+
         containerColor = Cream,
 
         topBar = {
+
             TopAppBar(
+
                 title = {
+
                     Column {
+
                         Text(
                             text = "Daily Zikr",
                             color = Color.White,
@@ -193,9 +216,11 @@ fun MainApp(
                 },
 
                 actions = {
+
                     IconButton(
                         onClick = onLogout
                     ) {
+
                         Icon(
                             imageVector = Icons.Default.Logout,
                             contentDescription = "Logout",
@@ -211,22 +236,28 @@ fun MainApp(
         },
 
         bottomBar = {
+
             NavigationBar(
                 containerColor = DarkBlue
             ) {
 
                 NavigationBarItem(
-                    selected = currentRoute == "home",
+
+                    selected = selectedScreen == "home",
 
                     onClick = {
+
+                        selectedScreen = "home"
+
                         navController.navigate("home") {
                             launchSingleTop = true
                         }
                     },
 
                     icon = {
+
                         Icon(
-                            Icons.Default.MenuBook,
+                            imageVector = Icons.Default.MenuBook,
                             contentDescription = "Zikr"
                         )
                     },
@@ -236,26 +267,33 @@ fun MainApp(
                     },
 
                     colors = NavigationBarItemDefaults.colors(
+
                         selectedIconColor = DarkBlue,
                         selectedTextColor = LightYellow,
                         indicatorColor = LightYellow,
+
                         unselectedIconColor = Color.White,
                         unselectedTextColor = Color.White
                     )
                 )
 
                 NavigationBarItem(
-                    selected = currentRoute == "report",
+
+                    selected = selectedScreen == "report",
 
                     onClick = {
+
+                        selectedScreen = "report"
+
                         navController.navigate("report") {
                             launchSingleTop = true
                         }
                     },
 
                     icon = {
+
                         Icon(
-                            Icons.Default.Assignment,
+                            imageVector = Icons.Default.Assignment,
                             contentDescription = "Record"
                         )
                     },
@@ -265,24 +303,31 @@ fun MainApp(
                     },
 
                     colors = NavigationBarItemDefaults.colors(
+
                         selectedIconColor = DarkBlue,
                         selectedTextColor = LightYellow,
                         indicatorColor = LightYellow,
+
                         unselectedIconColor = Color.White,
                         unselectedTextColor = Color.White
                     )
                 )
             }
         }
+
     ) { padding ->
 
         NavHost(
+
             navController = navController,
+
             startDestination = "home",
+
             modifier = Modifier.padding(padding)
         ) {
 
             composable("home") {
+
                 ZikrHomeScreen(
                     db = db,
                     auth = auth
@@ -290,6 +335,7 @@ fun MainApp(
             }
 
             composable("report") {
+
                 ReportScreen(
                     db = db,
                     auth = auth
@@ -303,29 +349,39 @@ fun MainApp(
 fun LoginScreen(
     onGoogleClick: () -> Unit
 ) {
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = DarkBlue
     ) {
 
         Column(
+
             modifier = Modifier
                 .fillMaxSize()
                 .padding(28.dp),
 
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
 
-            verticalArrangement = Arrangement.Center
+            verticalArrangement =
+                Arrangement.Center
         ) {
 
             Surface(
-                shape = RoundedCornerShape(28.dp),
+
+                shape =
+                    RoundedCornerShape(28.dp),
+
                 color = LightYellow,
-                modifier = Modifier.size(96.dp)
+
+                modifier =
+                    Modifier.size(96.dp)
             ) {
 
                 Box(
-                    contentAlignment = Alignment.Center
+                    contentAlignment =
+                        Alignment.Center
                 ) {
 
                     Text(
@@ -338,7 +394,8 @@ fun LoginScreen(
             }
 
             Spacer(
-                modifier = Modifier.height(24.dp)
+                modifier =
+                    Modifier.height(24.dp)
             )
 
             Text(
@@ -350,29 +407,40 @@ fun LoginScreen(
 
             Text(
                 text = "Keep your Zikr record safe online",
+
                 color = LightYellow,
                 fontSize = 15.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp)
+
+                textAlign =
+                    TextAlign.Center,
+
+                modifier =
+                    Modifier.padding(top = 8.dp)
             )
 
             Spacer(
-                modifier = Modifier.height(38.dp)
+                modifier =
+                    Modifier.height(38.dp)
             )
 
             Button(
-                onClick = onGoogleClick,
 
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LightYellow,
-                    contentColor = DarkBlue
-                ),
+                onClick =
+                    onGoogleClick,
 
-                shape = RoundedCornerShape(16.dp),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = LightYellow,
+                        contentColor = DarkBlue
+                    ),
 
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
+                shape =
+                    RoundedCornerShape(16.dp),
+
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
             ) {
 
                 Text(
@@ -390,6 +458,7 @@ fun ZikrHomeScreen(
     db: FirebaseFirestore,
     auth: FirebaseAuth
 ) {
+
     var totals by remember {
         mutableStateOf<Map<String, Long>>(emptyMap())
     }
@@ -402,10 +471,13 @@ fun ZikrHomeScreen(
         mutableStateOf(true)
     }
 
-    LaunchedEffect(auth.currentUser?.uid) {
+    LaunchedEffect(
+        auth.currentUser?.uid
+    ) {
 
-        val uid = auth.currentUser?.uid
-            ?: return@LaunchedEffect
+        val uid =
+            auth.currentUser?.uid
+                ?: return@LaunchedEffect
 
         db.collection("users")
             .document(uid)
@@ -413,14 +485,18 @@ fun ZikrHomeScreen(
 
             .addOnSuccessListener { doc ->
 
-                totals = zikrItems.associate {
-                    it.key to (doc.getLong(it.key) ?: 0L)
-                }
+                totals =
+                    zikrItems.associate {
+
+                        it.key to
+                            (doc.getLong(it.key) ?: 0L)
+                    }
 
                 loading = false
             }
 
             .addOnFailureListener {
+
                 loading = false
             }
     }
@@ -428,11 +504,14 @@ fun ZikrHomeScreen(
     if (loading) {
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Cream),
 
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(Cream),
+
+            contentAlignment =
+                Alignment.Center
         ) {
 
             CircularProgressIndicator(
@@ -444,50 +523,66 @@ fun ZikrHomeScreen(
     }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Cream)
-            .padding(16.dp),
 
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Cream)
+                .padding(16.dp),
+
+        verticalArrangement =
+            Arrangement.spacedBy(12.dp)
     ) {
 
         item {
 
             Text(
                 text = "Add Today's Zikr",
+
                 color = DarkBlue,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = "Enter the number you have recited and save it. The amount will be added to your lifetime total.",
+
+                text =
+                    "Enter the number you have recited and save it. The amount will be added to your lifetime total.",
 
                 color = TextDark,
                 fontSize = 14.sp,
 
-                modifier = Modifier.padding(
-                    top = 4.dp,
-                    bottom = 8.dp
-                )
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp,
+                        bottom = 8.dp
+                    )
             )
         }
 
         items(zikrItems) { item ->
 
             ZikrEntryCard(
+
                 item = item,
-                input = inputs[item.key] ?: "",
-                total = totals[item.key] ?: 0L,
+
+                input =
+                    inputs[item.key] ?: "",
+
+                total =
+                    totals[item.key] ?: 0L,
 
                 onInputChange = { value ->
 
-                    val filteredValue =
-                        value.filter { it.isDigit() }
+                    val filtered =
+                        value.filter {
+                            it.isDigit()
+                        }
 
                     inputs =
-                        inputs + (item.key to filteredValue)
+                        inputs + (
+                            item.key to filtered
+                        )
                 },
 
                 onSave = {
@@ -515,9 +610,11 @@ fun ZikrHomeScreen(
                         .document(uid)
 
                         .set(
+
                             mapOf(
                                 item.key to newTotal
                             ),
+
                             SetOptions.merge()
                         )
 
@@ -533,10 +630,6 @@ fun ZikrHomeScreen(
                                     item.key to ""
                                 )
                         }
-
-                        .addOnFailureListener {
-                            // Firebase error is silently ignored here.
-                        }
                 }
             )
         }
@@ -544,38 +637,49 @@ fun ZikrHomeScreen(
         item {
 
             Spacer(
-                modifier = Modifier.height(12.dp)
+                modifier =
+                    Modifier.height(12.dp)
             )
 
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = DarkBlue
-                ),
 
-                shape = RoundedCornerShape(18.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = DarkBlue
+                    ),
 
-                modifier = Modifier.fillMaxWidth()
+                shape =
+                    RoundedCornerShape(18.dp),
+
+                modifier =
+                    Modifier.fillMaxWidth()
             ) {
 
                 Column(
-                    modifier = Modifier.padding(18.dp)
+                    modifier =
+                        Modifier.padding(18.dp)
                 ) {
 
                     Text(
-                        text = "Your total record is always available online.",
+
+                        text =
+                            "Your total record is always available online.",
+
                         color = LightYellow,
-                        fontWeight = FontWeight.Bold
+                        fontWeight =
+                            FontWeight.Bold
                     )
 
                     Text(
-                        text = "No date-wise or month-wise history is stored.",
+
+                        text =
+                            "No date-wise or month-wise history is stored.",
 
                         color = Color.White,
                         fontSize = 13.sp,
 
-                        modifier = Modifier.padding(
-                            top = 5.dp
-                        )
+                        modifier =
+                            Modifier.padding(top = 5.dp)
                     )
                 }
             }
@@ -586,52 +690,75 @@ fun ZikrHomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZikrEntryCard(
+
     item: ZikrItem,
+
     input: String,
+
     total: Long,
-    onInputChange: (String) -> Unit,
-    onSave: () -> Unit
+
+    onInputChange:
+        (String) -> Unit,
+
+    onSave:
+        () -> Unit
 ) {
 
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
 
-        shape = RoundedCornerShape(18.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
 
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 3.dp
-        ),
+        shape =
+            RoundedCornerShape(18.dp),
 
-        modifier = Modifier.fillMaxWidth()
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 3.dp
+            ),
+
+        modifier =
+            Modifier.fillMaxWidth()
     ) {
 
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier =
+                Modifier.padding(16.dp)
         ) {
 
             Text(
+
                 text = item.title,
+
                 color = DarkBlue,
-                fontWeight = FontWeight.Bold,
+                fontWeight =
+                    FontWeight.Bold,
+
                 fontSize = 18.sp
             )
 
             Spacer(
-                modifier = Modifier.height(10.dp)
+                modifier =
+                    Modifier.height(10.dp)
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
 
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
 
                 OutlinedTextField(
+
                     value = input,
 
-                    onValueChange = onInputChange,
+                    onValueChange =
+                        onInputChange,
 
                     placeholder = {
                         Text("Enter count")
@@ -639,53 +766,78 @@ fun ZikrEntryCard(
 
                     singleLine = true,
 
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
-                    ),
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType =
+                                KeyboardType.Number
+                        ),
 
-                    modifier = Modifier.weight(1f),
+                    modifier =
+                        Modifier.weight(1f),
 
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Gold,
-                        unfocusedBorderColor = DarkBlue2,
-                        focusedLabelColor = DarkBlue
-                    )
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+
+                            focusedBorderColor =
+                                Gold,
+
+                            unfocusedBorderColor =
+                                DarkBlue2,
+
+                            focusedLabelColor =
+                                DarkBlue
+                        )
                 )
 
                 Spacer(
-                    modifier = Modifier.width(10.dp)
+                    modifier =
+                        Modifier.width(10.dp)
                 )
 
                 Button(
-                    onClick = onSave,
 
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = DarkBlue,
-                        contentColor = LightYellow
-                    ),
+                    onClick =
+                        onSave,
 
-                    shape = RoundedCornerShape(12.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(
 
-                    modifier = Modifier.height(54.dp)
+                            containerColor =
+                                DarkBlue,
+
+                            contentColor =
+                                LightYellow
+                        ),
+
+                    shape =
+                        RoundedCornerShape(12.dp),
+
+                    modifier =
+                        Modifier.height(54.dp)
                 ) {
 
                     Text(
                         text = "Save",
-                        fontWeight = FontWeight.Bold
+                        fontWeight =
+                            FontWeight.Bold
                     )
                 }
             }
 
             Text(
-                text = "Current total: $total",
+
+                text =
+                    "Current total: $total",
 
                 color = DarkBlue2,
-                fontWeight = FontWeight.SemiBold,
+
+                fontWeight =
+                    FontWeight.SemiBold,
+
                 fontSize = 13.sp,
 
-                modifier = Modifier.padding(
-                    top = 8.dp
-                )
+                modifier =
+                    Modifier.padding(top = 8.dp)
             )
         }
     }
@@ -693,18 +845,26 @@ fun ZikrEntryCard(
 
 @Composable
 fun ReportScreen(
+
     db: FirebaseFirestore,
+
     auth: FirebaseAuth
 ) {
 
     var totals by remember {
-        mutableStateOf<Map<String, Long>>(emptyMap())
+
+        mutableStateOf<Map<String, Long>>(
+            emptyMap()
+        )
     }
 
-    LaunchedEffect(auth.currentUser?.uid) {
+    LaunchedEffect(
+        auth.currentUser?.uid
+    ) {
 
-        val uid = auth.currentUser?.uid
-            ?: return@LaunchedEffect
+        val uid =
+            auth.currentUser?.uid
+                ?: return@LaunchedEffect
 
         db.collection("users")
             .document(uid)
@@ -713,11 +873,16 @@ fun ReportScreen(
 
                 if (doc != null && doc.exists()) {
 
-                    totals = zikrItems.associate {
-                        it.key to (
-                            doc.getLong(it.key) ?: 0L
-                        )
-                    }
+                    totals =
+                        zikrItems.associate {
+
+                            it.key to
+                                (
+                                    doc.getLong(
+                                        it.key
+                                    ) ?: 0L
+                                )
+                        }
                 }
             }
     }
@@ -726,69 +891,94 @@ fun ReportScreen(
         totals.values.sum()
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Cream)
-            .padding(16.dp),
 
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Cream)
+                .padding(16.dp),
+
+        verticalArrangement =
+            Arrangement.spacedBy(10.dp)
     ) {
 
         item {
 
             Text(
+
                 text = "My Zikr Record",
+
                 color = DarkBlue,
                 fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Text(
+
                 text = "Lifetime totals",
+
                 color = TextDark,
                 fontSize = 14.sp,
 
-                modifier = Modifier.padding(
-                    top = 3.dp,
-                    bottom = 6.dp
-                )
+                modifier =
+                    Modifier.padding(
+                        top = 3.dp,
+                        bottom = 6.dp
+                    )
             )
         }
 
         item {
 
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = DarkBlue
-                ),
 
-                shape = RoundedCornerShape(20.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            DarkBlue
+                    ),
 
-                modifier = Modifier.fillMaxWidth()
+                shape =
+                    RoundedCornerShape(20.dp),
+
+                modifier =
+                    Modifier.fillMaxWidth()
             ) {
 
                 Column(
-                    modifier = Modifier.padding(20.dp),
+
+                    modifier =
+                        Modifier.padding(20.dp),
 
                     horizontalAlignment =
                         Alignment.CenterHorizontally
                 ) {
 
                     Text(
+
                         text = "Grand Total",
+
                         color = LightYellow,
-                        fontWeight = FontWeight.Bold
+
+                        fontWeight =
+                            FontWeight.Bold
                     )
 
                     Text(
-                        text = grandTotal.toString(),
-                        color = Color.White,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Bold,
 
-                        modifier = Modifier.padding(
-                            top = 5.dp
-                        )
+                        text =
+                            grandTotal.toString(),
+
+                        color = Color.White,
+
+                        fontSize = 34.sp,
+
+                        fontWeight =
+                            FontWeight.Bold,
+
+                        modifier =
+                            Modifier.padding(top = 5.dp)
                     )
                 }
             }
@@ -800,43 +990,63 @@ fun ReportScreen(
                 totals[item.key] ?: 0L
 
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
 
-                shape = RoundedCornerShape(16.dp),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            Color.White
+                    ),
 
-                modifier = Modifier.fillMaxWidth()
+                shape =
+                    RoundedCornerShape(16.dp),
+
+                modifier =
+                    Modifier.fillMaxWidth()
             ) {
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = 16.dp,
-                            vertical = 17.dp
-                        ),
+
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = 17.dp
+                            ),
 
                     verticalAlignment =
                         Alignment.CenterVertically
                 ) {
 
                     Text(
-                        text = item.title,
 
-                        color = TextDark,
+                        text =
+                            item.title,
+
+                        color =
+                            TextDark,
+
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
 
-                        modifier = Modifier.weight(1f)
+                        fontWeight =
+                            FontWeight.SemiBold,
+
+                        modifier =
+                            Modifier.weight(1f)
                     )
 
                     Text(
-                        text = total.toString(),
 
-                        color = DarkBlue,
+                        text =
+                            total.toString(),
+
+                        color =
+                            DarkBlue,
+
                         fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold
+
+                        fontWeight =
+                            FontWeight.Bold
                     )
                 }
             }
@@ -846,30 +1056,41 @@ fun ReportScreen(
 
 @Composable
 fun DailyZikrTheme(
-    content: @Composable () -> Unit
+    content:
+        @Composable () -> Unit
 ) {
 
     MaterialTheme(
 
-        colorScheme = lightColorScheme(
+        colorScheme =
+            lightColorScheme(
 
-            primary = DarkBlue,
+                primary =
+                    DarkBlue,
 
-            secondary = Gold,
+                secondary =
+                    Gold,
 
-            background = Cream,
+                background =
+                    Cream,
 
-            surface = Color.White,
+                surface =
+                    Color.White,
 
-            onPrimary = Color.White,
+                onPrimary =
+                    Color.White,
 
-            onSecondary = DarkBlue,
+                onSecondary =
+                    DarkBlue,
 
-            onBackground = TextDark,
+                onBackground =
+                    TextDark,
 
-            onSurface = TextDark
-        ),
+                onSurface =
+                    TextDark
+            ),
 
-        content = content
+        content =
+            content
     )
 }
