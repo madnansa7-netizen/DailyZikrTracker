@@ -25,31 +25,32 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Make Gradle executable
-        run: chmod +x ./gradlew
-
-      - name: Check Gradle files
+      - name: Check project files
         run: |
-          echo "Checking project files..."
+          echo "===== PROJECT ROOT ====="
           ls -la
-          echo "Checking Gradle wrapper..."
-          ls -la gradlew
-          echo "Checking app folder..."
+          echo "===== APP FOLDER ====="
           ls -la app
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: gradle :app:assembleDebug --stacktrace
 
       - name: Get Debug SHA-1
         run: |
           echo "========================================"
           echo "ANDROID DEBUG SHA-1"
           echo "========================================"
-          keytool -list -v \
-            -keystore ~/.android/debug.keystore \
-            -alias androiddebugkey \
-            -storepass android \
-            -keypass android | grep -E "SHA1:|SHA256:"
+
+          if [ -f "$HOME/.android/debug.keystore" ]; then
+            keytool -list -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -alias androiddebugkey \
+              -storepass android \
+              -keypass android | grep -E "SHA1:|SHA256:"
+          else
+            echo "debug.keystore was not found."
+          fi
+
           echo "========================================"
 
       - name: Upload APK
