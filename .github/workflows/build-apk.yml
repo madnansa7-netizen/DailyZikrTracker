@@ -35,21 +35,30 @@ jobs:
       - name: Build Debug APK
         run: gradle :app:assembleDebug --stacktrace
 
-      - name: Get Debug SHA-1
+      - name: Get SHA-1 from APK
         run: |
           echo "========================================"
-          echo "ANDROID DEBUG SHA-1"
+          echo "APK SIGNING CERTIFICATE"
           echo "========================================"
 
-          if [ -f "$HOME/.android/debug.keystore" ]; then
-            keytool -list -v \
-              -keystore "$HOME/.android/debug.keystore" \
-              -alias androiddebugkey \
-              -storepass android \
-              -keypass android | grep -E "SHA1:|SHA256:"
-          else
-            echo "debug.keystore was not found."
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "APK not found!"
+            exit 1
           fi
+
+          echo "APK found: $APK"
+          echo ""
+          echo "Certificate fingerprints:"
+          keytool -printcert -jarfile "$APK"
+
+          echo ""
+          echo "========================================"
+          echo "SHA-1 ONLY"
+          echo "========================================"
+
+          keytool -printcert -jarfile "$APK" | grep "SHA1:"
 
           echo "========================================"
 
