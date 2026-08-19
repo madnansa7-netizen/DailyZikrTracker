@@ -33,11 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 
 private val DarkBlue = Color(0xFF102A43)
 private val DarkBlue2 = Color(0xFF163D5C)
@@ -92,11 +92,8 @@ private fun addTotal(
     key: String,
     amount: Long
 ): Long {
-
     val prefs = getPrefs(context)
-
     val oldValue = prefs.getLong(key, 0L)
-
     val newValue = oldValue + amount
 
     prefs.edit()
@@ -106,25 +103,31 @@ private fun addTotal(
     return newValue
 }
 
+private fun updateTotal(
+    context: Context,
+    key: String,
+    newValue: Long
+) {
+    getPrefs(context)
+        .edit()
+        .putLong(key, newValue)
+        .apply()
+}
+
 @Composable
 fun DailyZikrApp() {
-
-    val context = LocalContext.current
 
     var showRecord by remember {
         mutableStateOf(false)
     }
 
     if (showRecord) {
-
         RecordScreen(
             onBack = {
                 showRecord = false
             }
         )
-
     } else {
-
         HomeScreen(
             onRecordClick = {
                 showRecord = true
@@ -141,7 +144,6 @@ fun HomeScreen(
     val context = LocalContext.current
 
     var totals by remember {
-
         mutableStateOf(
             zikrItems.associate { item ->
                 item.key to getTotal(
@@ -153,13 +155,10 @@ fun HomeScreen(
     }
 
     var inputs by remember {
-        mutableStateOf<Map<String, String>>(
-            emptyMap()
-        )
+        mutableStateOf<Map<String, String>>(emptyMap())
     }
 
     Column(
-
         modifier =
             Modifier
                 .fillMaxSize()
@@ -172,12 +171,10 @@ fun HomeScreen(
         )
 
         LazyColumn(
-
             modifier =
                 Modifier
                     .weight(1f)
                     .padding(16.dp),
-
             verticalArrangement =
                 Arrangement.spacedBy(12.dp)
         ) {
@@ -185,26 +182,17 @@ fun HomeScreen(
             item {
 
                 Text(
-
                     text = "Add Today's Zikr",
-
                     color = DarkBlue,
-
                     fontSize = 25.sp,
-
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
 
                 Text(
-
                     text =
                         "Enter your recitation count and press Save.",
-
                     color = TextDark,
-
                     fontSize = 14.sp,
-
                     modifier =
                         Modifier.padding(
                             top = 4.dp,
@@ -216,14 +204,9 @@ fun HomeScreen(
             items(zikrItems) { item ->
 
                 ZikrCard(
-
                     item = item,
-
-                    input =
-                        inputs[item.key] ?: "",
-
-                    total =
-                        totals[item.key] ?: 0L,
+                    input = inputs[item.key] ?: "",
+                    total = totals[item.key] ?: 0L,
 
                     onInputChange = { value ->
 
@@ -234,10 +217,7 @@ fun HomeScreen(
 
                         inputs =
                             inputs +
-                                (
-                                    item.key
-                                        to cleanValue
-                                )
+                                (item.key to cleanValue)
                     },
 
                     onSave = {
@@ -258,88 +238,19 @@ fun HomeScreen(
 
                             totals =
                                 totals +
-                                    (
-                                        item.key
-                                            to newTotal
-                                    )
+                                    (item.key to newTotal)
 
                             inputs =
                                 inputs +
-                                    (
-                                        item.key
-                                            to ""
-                                    )
+                                    (item.key to "")
                         }
                     }
                 )
             }
-
-            item {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(4.dp)
-                )
-
-                Card(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(18.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                DarkBlue
-                        )
-                ) {
-
-                    Column(
-
-                        modifier =
-                            Modifier.padding(18.dp)
-                    ) {
-
-                        Text(
-
-                            text =
-                                "100% Local Storage",
-
-                            color =
-                                LightYellow,
-
-                            fontSize = 18.sp,
-
-                            fontWeight =
-                                FontWeight.Bold
-                        )
-
-                        Text(
-
-                            text =
-                                "No Google Login • No Firebase • No Internet Required",
-
-                            color =
-                                Color.White,
-
-                            fontSize = 13.sp,
-
-                            modifier =
-                                Modifier.padding(
-                                    top = 5.dp
-                                )
-                        )
-                    }
-                }
-            }
         }
 
         Button(
-
             onClick = onRecordClick,
-
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -348,20 +259,14 @@ fun HomeScreen(
                         end = 16.dp,
                         bottom = 16.dp
                     ),
-
             shape =
                 RoundedCornerShape(14.dp),
-
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor =
-                        DarkBlue,
-
-                    contentColor =
-                        LightYellow
+                    containerColor = DarkBlue,
+                    contentColor = LightYellow
                 )
         ) {
-
             Text(
                 text = "View My Zikr Record",
                 fontWeight = FontWeight.Bold
@@ -377,7 +282,6 @@ fun Header(
 ) {
 
     Column(
-
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -386,119 +290,73 @@ fun Header(
     ) {
 
         Text(
-
             text = title,
-
             color = Color.White,
-
             fontSize = 23.sp,
-
-            fontWeight =
-                FontWeight.Bold
+            fontWeight = FontWeight.Bold
         )
 
         Text(
-
             text = subtitle,
-
             color = LightYellow,
-
             fontSize = 12.sp,
-
             modifier =
-                Modifier.padding(
-                    top = 3.dp
-                )
+                Modifier.padding(top = 3.dp)
         )
     }
 }
 
 @Composable
 fun ZikrCard(
-
     item: ZikrItem,
-
     input: String,
-
     total: Long,
-
-    onInputChange:
-        (String) -> Unit,
-
-    onSave:
-        () -> Unit
+    onInputChange: (String) -> Unit,
+    onSave: () -> Unit
 ) {
 
     Card(
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(18.dp),
-
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
         elevation =
             CardDefaults.cardElevation(
                 defaultElevation = 3.dp
             ),
-
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    Color.White
+                containerColor = Color.White
             )
     ) {
 
         Column(
-
-            modifier =
-                Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
 
             Text(
-
-                text =
-                    item.title,
-
-                color =
-                    DarkBlue,
-
+                text = item.title,
+                color = DarkBlue,
                 fontSize = 18.sp,
-
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(10.dp)
+                modifier = Modifier.height(10.dp)
             )
 
             Row(
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment =
                     Alignment.CenterVertically
             ) {
 
                 OutlinedTextField(
-
                     value = input,
-
-                    onValueChange =
-                        onInputChange,
-
-                    modifier =
-                        Modifier.weight(1f),
-
+                    onValueChange = onInputChange,
+                    modifier = Modifier.weight(1f),
                     singleLine = true,
-
                     placeholder = {
                         Text("Enter count")
                     },
-
                     keyboardOptions =
                         KeyboardOptions(
                             keyboardType =
@@ -507,52 +365,33 @@ fun ZikrCard(
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.width(8.dp)
+                    modifier = Modifier.width(8.dp)
                 )
 
                 Button(
-
                     onClick = onSave,
-
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor =
-                                DarkBlue,
-
-                            contentColor =
-                                LightYellow
+                            containerColor = DarkBlue,
+                            contentColor = LightYellow
                         ),
-
                     shape =
                         RoundedCornerShape(12.dp)
                 ) {
-
                     Text(
                         text = "Save",
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
             Text(
-
-                text =
-                    "Current total: $total",
-
-                color =
-                    DarkBlue2,
-
+                text = "Current total: $total",
+                color = DarkBlue2,
                 fontSize = 13.sp,
-
-                fontWeight =
-                    FontWeight.SemiBold,
-
+                fontWeight = FontWeight.SemiBold,
                 modifier =
-                    Modifier.padding(
-                        top = 8.dp
-                    )
+                    Modifier.padding(top = 8.dp)
             )
         }
     }
@@ -565,20 +404,26 @@ fun RecordScreen(
 
     val context = LocalContext.current
 
-    val totals =
-        zikrItems.associate { item ->
+    var totals by remember {
+        mutableStateOf(
+            zikrItems.associate { item ->
+                item.key to getTotal(
+                    context,
+                    item.key
+                )
+            }
+        )
+    }
 
-            item.key to getTotal(
-                context,
-                item.key
-            )
-        }
+    var editingKey by remember {
+        mutableStateOf<String?>(null)
+    }
 
-    val grandTotal =
-        totals.values.sum()
+    var editValue by remember {
+        mutableStateOf("")
+    }
 
     Column(
-
         modifier =
             Modifier
                 .fillMaxSize()
@@ -586,83 +431,18 @@ fun RecordScreen(
     ) {
 
         Header(
-
             title = "My Zikr Record",
-
-            subtitle =
-                "All data saved on this phone"
+            subtitle = "Edit any record if you entered it incorrectly"
         )
 
         LazyColumn(
-
             modifier =
                 Modifier
                     .weight(1f)
                     .padding(16.dp),
-
             verticalArrangement =
                 Arrangement.spacedBy(10.dp)
         ) {
-
-            item {
-
-                Card(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    shape =
-                        RoundedCornerShape(20.dp),
-
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor =
-                                DarkBlue
-                        )
-                ) {
-
-                    Column(
-
-                        modifier =
-                            Modifier.padding(20.dp),
-
-                        horizontalAlignment =
-                            Alignment.CenterHorizontally
-                    ) {
-
-                        Text(
-
-                            text =
-                                "Grand Total",
-
-                            color =
-                                LightYellow,
-
-                            fontWeight =
-                                FontWeight.Bold
-                        )
-
-                        Text(
-
-                            text =
-                                grandTotal.toString(),
-
-                            color =
-                                Color.White,
-
-                            fontSize = 36.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            modifier =
-                                Modifier.padding(
-                                    top = 5.dp
-                                )
-                        )
-                    }
-                }
-            }
 
             items(zikrItems) { item ->
 
@@ -670,70 +450,183 @@ fun RecordScreen(
                     totals[item.key] ?: 0L
 
                 Card(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
+                    modifier = Modifier.fillMaxWidth(),
                     shape =
                         RoundedCornerShape(16.dp),
-
                     colors =
                         CardDefaults.cardColors(
-                            containerColor =
-                                Color.White
+                            containerColor = Color.White
                         )
                 ) {
 
-                    Row(
-
+                    Column(
                         modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(17.dp),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                            Modifier.padding(16.dp)
                     ) {
 
-                        Text(
-
-                            text =
-                                item.title,
-
-                            color =
-                                TextDark,
-
-                            fontSize = 16.sp,
-
-                            fontWeight =
-                                FontWeight.SemiBold,
-
+                        Row(
                             modifier =
-                                Modifier.weight(1f)
+                                Modifier.fillMaxWidth(),
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+
+                            Text(
+                                text = item.title,
+                                color = TextDark,
+                                fontSize = 16.sp,
+                                fontWeight =
+                                    FontWeight.SemiBold,
+                                modifier =
+                                    Modifier.weight(1f)
+                            )
+
+                            Text(
+                                text = total.toString(),
+                                color = DarkBlue,
+                                fontSize = 21.sp,
+                                fontWeight =
+                                    FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(
+                            modifier = Modifier.height(10.dp)
                         )
 
-                        Text(
+                        if (editingKey == item.key) {
 
-                            text =
-                                total.toString(),
+                            OutlinedTextField(
+                                value = editValue,
+                                onValueChange = { value ->
+                                    editValue =
+                                        value.filter {
+                                            it.isDigit()
+                                        }
+                                },
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                label = {
+                                    Text("Correct total")
+                                },
+                                keyboardOptions =
+                                    KeyboardOptions(
+                                        keyboardType =
+                                            KeyboardType.Number
+                                    )
+                            )
 
-                            color =
-                                DarkBlue,
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
 
-                            fontSize = 21.sp,
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
+                            ) {
 
-                            fontWeight =
-                                FontWeight.Bold
-                        )
+                                Button(
+                                    onClick = {
+
+                                        val newTotal =
+                                            editValue
+                                                .toLongOrNull()
+
+                                        if (newTotal != null) {
+
+                                            updateTotal(
+                                                context,
+                                                item.key,
+                                                newTotal
+                                            )
+
+                                            totals =
+                                                totals +
+                                                    (
+                                                        item.key
+                                                            to newTotal
+                                                    )
+
+                                            editingKey = null
+                                            editValue = ""
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier.weight(1f),
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor =
+                                                DarkBlue,
+                                            contentColor =
+                                                LightYellow
+                                        ),
+                                    shape =
+                                        RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(
+                                        text = "Update",
+                                        fontWeight =
+                                            FontWeight.Bold
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        editingKey = null
+                                        editValue = ""
+                                    },
+                                    modifier =
+                                        Modifier.weight(1f),
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor =
+                                                DarkBlue2,
+                                            contentColor =
+                                                Color.White
+                                        ),
+                                    shape =
+                                        RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Cancel")
+                                }
+                            }
+
+                        } else {
+
+                            Button(
+                                onClick = {
+
+                                    editingKey = item.key
+                                    editValue =
+                                        total.toString()
+                                },
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = Gold,
+                                        contentColor = DarkBlue
+                                    ),
+                                shape =
+                                    RoundedCornerShape(10.dp)
+                            ) {
+                                Text(
+                                    text = "Edit / Update",
+                                    fontWeight =
+                                        FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
         Button(
-
             onClick = onBack,
-
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -742,24 +635,17 @@ fun RecordScreen(
                         end = 16.dp,
                         bottom = 16.dp
                     ),
-
             shape =
                 RoundedCornerShape(14.dp),
-
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor =
-                        DarkBlue,
-
-                    contentColor =
-                        LightYellow
+                    containerColor = DarkBlue,
+                    contentColor = LightYellow
                 )
         ) {
-
             Text(
                 text = "Back to Zikr",
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -771,35 +657,17 @@ fun DailyZikrTheme(
 ) {
 
     MaterialTheme(
-
         colorScheme =
             androidx.compose.material3.lightColorScheme(
-
-                primary =
-                    DarkBlue,
-
-                secondary =
-                    Gold,
-
-                background =
-                    Cream,
-
-                surface =
-                    Color.White,
-
-                onPrimary =
-                    Color.White,
-
-                onSecondary =
-                    DarkBlue,
-
-                onBackground =
-                    TextDark,
-
-                onSurface =
-                    TextDark
+                primary = DarkBlue,
+                secondary = Gold,
+                background = Cream,
+                surface = Color.White,
+                onPrimary = Color.White,
+                onSecondary = DarkBlue,
+                onBackground = TextDark,
+                onSurface = TextDark
             ),
-
         content = content
     )
 }
