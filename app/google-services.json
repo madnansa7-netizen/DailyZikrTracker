@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "397312893941",
+    "project_id": "daily-zikr-tracker",
+    "storage_bucket": "daily-zikr-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397312893941:android:57cb4fb112b26f9ce076bc",
+        "android_client_info": {
+          "package_name": "com.example.dailyzikrtracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "397312893941-is5b1uqesg6g0vbaec9l62hns12f3290.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dailyzikrtracker",
+            "certificate_hash": "a76c4d0d2f180889a8290af87c7be2408c226e6e"
+          }
+        },
+        {
+          "client_id": "397312893941-jq5dfh7f8pmnbnle6vfkaq7k2m3rk59c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dailyzikrtracker",
+            "certificate_hash": "5cbcc4342f7d6a37bd4f53f4fd2d87bc35dcf0d2"
+          }
+        },
+        {
+          "client_id": "397312893941-poqlnphvncgr86ri825dj8sf0oo2na6c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWbDtj2aJpzyDi-jNMjfHcZ8hISTCsjo0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "397312893941-poqlnphvncgr86ri825dj8sf0oo2na6c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
