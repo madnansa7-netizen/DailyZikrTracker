@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,16 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,7 +36,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -54,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
@@ -82,11 +76,6 @@ val zikrItems = listOf(
 )
 
 private const val PREFS_NAME = "daily_zikr_tracker"
-private const val KEY_DAROOD = "darood"
-private const val KEY_KALMA = "kalma"
-private const val KEY_ASTAGHFAR = "astaghfar"
-private const val KEY_IKHLAS = "ikhlas"
-private const val KEY_FATIHA = "fatiha"
 
 class MainActivity : ComponentActivity() {
 
@@ -102,7 +91,10 @@ class MainActivity : ComponentActivity() {
 }
 
 private fun getPrefs(context: Context) =
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    context.getSharedPreferences(
+        PREFS_NAME,
+        Context.MODE_PRIVATE
+    )
 
 private fun getZikrTotal(
     context: Context,
@@ -141,6 +133,7 @@ fun MainApp() {
     }
 
     Scaffold(
+
         containerColor = Cream,
 
         topBar = {
@@ -165,26 +158,10 @@ fun MainApp() {
                     }
                 },
 
-                actions = {
-
-                    IconButton(
-                        onClick = {
-                            // No online account/logout required.
-                        }
-                    ) {
-
-                        Icon(
-                            imageVector = Icons.Default.Logout,
-                            contentDescription = "Local App",
-                            tint = Color.White
-                        )
-                    }
-                },
-
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DarkBlue
                 )
-            )
+            }
         },
 
         bottomBar = {
@@ -218,15 +195,24 @@ fun MainApp() {
                         Text("Zikr")
                     },
 
-                    colors = NavigationBarItemDefaults.colors(
+                    colors =
+                        NavigationBarItemDefaults.colors(
 
-                        selectedIconColor = DarkBlue,
-                        selectedTextColor = LightYellow,
-                        indicatorColor = LightYellow,
+                            selectedIconColor =
+                                DarkBlue,
 
-                        unselectedIconColor = Color.White,
-                        unselectedTextColor = Color.White
-                    )
+                            selectedTextColor =
+                                LightYellow,
+
+                            indicatorColor =
+                                LightYellow,
+
+                            unselectedIconColor =
+                                Color.White,
+
+                            unselectedTextColor =
+                                Color.White
+                        )
                 )
 
                 NavigationBarItem(
@@ -254,15 +240,24 @@ fun MainApp() {
                         Text("Record")
                     },
 
-                    colors = NavigationBarItemDefaults.colors(
+                    colors =
+                        NavigationBarItemDefaults.colors(
 
-                        selectedIconColor = DarkBlue,
-                        selectedTextColor = LightYellow,
-                        indicatorColor = LightYellow,
+                            selectedIconColor =
+                                DarkBlue,
 
-                        unselectedIconColor = Color.White,
-                        unselectedTextColor = Color.White
-                    )
+                            selectedTextColor =
+                                LightYellow,
+
+                            indicatorColor =
+                                LightYellow,
+
+                            unselectedIconColor =
+                                Color.White,
+
+                            unselectedTextColor =
+                                Color.White
+                        )
                 )
             }
         }
@@ -275,16 +270,15 @@ fun MainApp() {
 
             startDestination = "home",
 
-            modifier = Modifier.padding(padding)
+            modifier =
+                Modifier.padding(padding)
         ) {
 
             composable("home") {
-
                 ZikrHomeScreen()
             }
 
             composable("report") {
-
                 ReportScreen()
             }
         }
@@ -328,7 +322,6 @@ fun ZikrHomeScreen() {
 
             Text(
                 text = "Add Today's Zikr",
-
                 color = DarkBlue,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -388,9 +381,9 @@ fun ZikrHomeScreen() {
 
                     val newTotal =
                         addZikrTotal(
-                            context = context,
-                            key = item.key,
-                            amount = amount
+                            context,
+                            item.key,
+                            amount
                         )
 
                     totals =
@@ -438,8 +431,7 @@ fun ZikrHomeScreen() {
                             "Your Zikr record is saved on this phone.",
 
                         color = LightYellow,
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
@@ -469,11 +461,9 @@ fun ZikrEntryCard(
 
     total: Long,
 
-    onInputChange:
-        (String) -> Unit,
+    onInputChange: (String) -> Unit,
 
-    onSave:
-        () -> Unit
+    onSave: () -> Unit
 ) {
 
     Card(
@@ -505,9 +495,7 @@ fun ZikrEntryCard(
                 text = item.title,
 
                 color = DarkBlue,
-                fontWeight =
-                    FontWeight.Bold,
-
+                fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
 
@@ -590,8 +578,7 @@ fun ZikrEntryCard(
 
                     Text(
                         text = "Save",
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -603,8 +590,7 @@ fun ZikrEntryCard(
 
                 color = DarkBlue2,
 
-                fontWeight =
-                    FontWeight.SemiBold,
+                fontWeight = FontWeight.SemiBold,
 
                 fontSize = 13.sp,
 
@@ -624,7 +610,6 @@ fun ReportScreen() {
         mutableStateOf(0)
     }
 
-    // Reading refresh keeps the report updated when navigating back.
     val totals =
         zikrItems.associate {
 
@@ -637,7 +622,6 @@ fun ReportScreen() {
     val grandTotal =
         totals.values.sum()
 
-    // Prevent unused state warning and allow recomposition.
     refresh.hashCode()
 
     LazyColumn(
@@ -660,13 +644,13 @@ fun ReportScreen() {
 
                 color = DarkBlue,
                 fontSize = 26.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
 
             Text(
 
-                text = "Lifetime totals saved on this device",
+                text =
+                    "Lifetime totals saved on this device",
 
                 color = TextDark,
                 fontSize = 14.sp,
@@ -710,9 +694,7 @@ fun ReportScreen() {
                         text = "Grand Total",
 
                         color = LightYellow,
-
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
@@ -724,8 +706,7 @@ fun ReportScreen() {
 
                         fontSize = 34.sp,
 
-                        fontWeight =
-                            FontWeight.Bold,
+                        fontWeight = FontWeight.Bold,
 
                         modifier =
                             Modifier.padding(top = 5.dp)
@@ -806,8 +787,7 @@ fun ReportScreen() {
 
 @Composable
 fun DailyZikrTheme(
-    content:
-        @Composable () -> Unit
+    content: @Composable () -> Unit
 ) {
 
     MaterialTheme(
@@ -815,32 +795,23 @@ fun DailyZikrTheme(
         colorScheme =
             androidx.compose.material3.lightColorScheme(
 
-                primary =
-                    DarkBlue,
+                primary = DarkBlue,
 
-                secondary =
-                    Gold,
+                secondary = Gold,
 
-                background =
-                    Cream,
+                background = Cream,
 
-                surface =
-                    Color.White,
+                surface = Color.White,
 
-                onPrimary =
-                    Color.White,
+                onPrimary = Color.White,
 
-                onSecondary =
-                    DarkBlue,
+                onSecondary = DarkBlue,
 
-                onBackground =
-                    TextDark,
+                onBackground = TextDark,
 
-                onSurface =
-                    TextDark
+                onSurface = TextDark
             ),
 
-        content =
-            content
+        content = content
     )
 }
