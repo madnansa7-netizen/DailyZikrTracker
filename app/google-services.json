@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "397312893941",
+    "project_id": "daily-zikr-tracker",
+    "storage_bucket": "daily-zikr-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397312893941:android:57cb4fb112b26f9ce076bc",
+        "android_client_info": {
+          "package_name": "com.example.dailyzikrtracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWbDtj2aJpzyDi-jNMjfHcZ8hISTCsjo0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
