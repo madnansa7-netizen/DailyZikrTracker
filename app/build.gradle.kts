@@ -17,18 +17,10 @@ android {
         versionName = "1.0"
     }
 
-    signingConfigs {
-        create("dailyZikrDebug") {
-            storeFile = rootProject.file("signing/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
     buildTypes {
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("dailyZikrDebug")
+            // Use the standard Android debug signing configuration.
+            // GitHub Actions will automatically create/use the debug keystore.
         }
     }
 
