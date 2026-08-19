@@ -1,12 +1,22 @@
 package com.example.dailyzikrtracker
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Alignment
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,11 +25,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -28,14 +60,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 
 private val DarkBlue = Color(0xFF102A43)
 private val DarkBlue2 = Color(0xFF163D5C)
@@ -43,16 +67,6 @@ private val LightYellow = Color(0xFFFFF4BF)
 private val Gold = Color(0xFFE4B64A)
 private val Cream = Color(0xFFFFFBEB)
 private val TextDark = Color(0xFF1F2933)
-
-/*
- * IMPORTANT:
- *
- * This is the WEB OAuth Client ID from google-services.json.
- *
- * It is client_type = 3 in the uploaded Firebase configuration.
- */
-private const val WEB_CLIENT_ID =
-    "397312893941-poqlnphvncgr86ri825dj8sf0oo2na6c.apps.googleusercontent.com"
 
 data class ZikrItem(
     val key: String,
@@ -67,299 +81,66 @@ val zikrItems = listOf(
     ZikrItem("fatiha", "Surah Fatiha")
 )
 
-class MainActivity : ComponentActivity() {
+private const val PREFS_NAME = "daily_zikr_tracker"
+private const val KEY_DAROOD = "darood"
+private const val KEY_KALMA = "kalma"
+private const val KEY_ASTAGHFAR = "astaghfar"
+private const val KEY_IKHLAS = "ikhlas"
+private const val KEY_FATIHA = "fatiha"
 
-    private lateinit var auth: FirebaseAuth
-    private lateinit var googleClient: GoogleSignInClient
-    private val db = FirebaseFirestore.getInstance()
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        auth = FirebaseAuth.getInstance()
-
-        /*
-         * Google Sign-In configuration.
-         *
-         * We deliberately use the verified WEB client ID from
-         * google-services.json instead of relying on a generated
-         * default_web_client_id resource.
-         */
-        val gso = GoogleSignInOptions.Builder(
-            GoogleSignInOptions.DEFAULT_SIGN_IN
-        )
-            .requestIdToken(WEB_CLIENT_ID)
-            .requestEmail()
-            .build()
-
-        googleClient = GoogleSignIn.getClient(this, gso)
-
         setContent {
             DailyZikrTheme {
-
-                if (auth.currentUser == null) {
-
-                    LoginScreen(
-                        onGoogleClick = {
-                            signInWithGoogle()
-                        }
-                    )
-
-                } else {
-
-                    MainApp(
-                        userName = auth.currentUser?.displayName ?: "User",
-
-                        onLogout = {
-                            logoutUser()
-                        },
-
-                        db = db,
-                        auth = auth
-                    )
-                }
+                MainApp()
             }
         }
-    }
-
-    private fun signInWithGoogle() {
-
-        /*
-         * Sign out the Google client first.
-         *
-         * This forces the account chooser/sign-in flow to refresh
-         * instead of potentially using an old cached configuration.
-         */
-        googleClient.signOut()
-            .addOnCompleteListener {
-
-                try {
-
-                    startActivityForResult(
-                        googleClient.signInIntent,
-                        RC_SIGN_IN
-                    )
-
-                } catch (e: Exception) {
-
-                    showError(
-                        "Could not start Google Sign-In.\n\n${e.message}"
-                    )
-                }
-            }
-    }
-
-    private fun logoutUser() {
-
-        googleClient.signOut()
-            .addOnCompleteListener {
-
-                auth.signOut()
-
-                recreate()
-            }
-    }
-
-    @Deprecated("Activity Result API can be used in a future refactor.")
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-
-        super.onActivityResult(
-            requestCode,
-            resultCode,
-            data
-        )
-
-        if (requestCode != RC_SIGN_IN) {
-            return
-        }
-
-        /*
-         * Get the Google account returned by Google Play Services.
-         */
-        val task =
-            GoogleSignIn.getSignedInAccountFromIntent(data)
-
-        try {
-
-            val account =
-                task.getResult(
-                    ApiException::class.java
-                )
-
-            val idToken =
-                account.idToken
-
-            /*
-             * If Google returned no ID token, show the actual problem.
-             */
-            if (idToken.isNullOrBlank()) {
-
-                showError(
-                    "Google did not return an ID token."
-                )
-
-                return
-            }
-
-            /*
-             * Convert Google account into Firebase credential.
-             */
-            val credential =
-                GoogleAuthProvider.getCredential(
-                    idToken,
-                    null
-                )
-
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener(this) { signInTask ->
-
-                    if (signInTask.isSuccessful) {
-
-                        /*
-                         * Firebase login successful.
-                         */
-                        recreate()
-
-                    } else {
-
-                        val exception =
-                            signInTask.exception
-
-                        showError(
-                            buildFirebaseErrorMessage(
-                                exception
-                            )
-                        )
-                    }
-                }
-
-        } catch (e: ApiException) {
-
-            /*
-             * This is especially important for
-             * DEVELOPER_ERROR (10).
-             *
-             * We now display the exact error code.
-             */
-            showError(
-                buildGoogleErrorMessage(e)
-            )
-
-        } catch (e: Exception) {
-
-            showError(
-                "Google Sign-In error:\n${e.message ?: "Unknown error"}"
-            )
-        }
-    }
-
-    private fun buildGoogleErrorMessage(
-        exception: ApiException
-    ): String {
-
-        return when (exception.statusCode) {
-
-            10 -> {
-                """
-                DEVELOPER_ERROR (10)
-
-                OAuth configuration mismatch.
-
-                Please verify:
-                • Package name
-                • SHA-1 certificate
-                • Android OAuth client
-                • Web OAuth client
-                • google-services.json
-
-                Current package:
-                com.example.dailyzikrtracker
-
-                Current Web Client:
-                $WEB_CLIENT_ID
-                """.trimIndent()
-            }
-
-            12501 -> {
-                "Google Sign-In cancelled by user."
-            }
-
-            12500 -> {
-                "Google Sign-In configuration error (12500)."
-            }
-
-            7 -> {
-                "Network error. Please check your internet connection."
-            }
-
-            else -> {
-                """
-                Google Sign-In failed.
-
-                Error code: ${exception.statusCode}
-
-                Message:
-                ${exception.message ?: "No additional message"}
-                """.trimIndent()
-            }
-        }
-    }
-
-    private fun buildFirebaseErrorMessage(
-        exception: Exception?
-    ): String {
-
-        return """
-            Firebase Sign-In failed.
-
-            ${exception?.message ?: "Unknown Firebase error"}
-        """.trimIndent()
-    }
-
-    private fun showError(
-        message: String
-    ) {
-
-        Toast.makeText(
-            this,
-            message,
-            Toast.LENGTH_LONG
-        ).show()
-    }
-
-    companion object {
-
-        private const val RC_SIGN_IN = 9001
     }
 }
 
+private fun getPrefs(context: Context) =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-/* ============================================================
-   MAIN APP
-   ============================================================ */
+private fun getZikrTotal(
+    context: Context,
+    key: String
+): Long {
+    return getPrefs(context).getLong(key, 0L)
+}
+
+private fun addZikrTotal(
+    context: Context,
+    key: String,
+    amount: Long
+): Long {
+
+    val prefs = getPrefs(context)
+
+    val current = prefs.getLong(key, 0L)
+
+    val newTotal = current + amount
+
+    prefs.edit()
+        .putLong(key, newTotal)
+        .apply()
+
+    return newTotal
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp(
-    userName: String,
-    onLogout: () -> Unit,
-    db: FirebaseFirestore,
-    auth: FirebaseAuth
-) {
+fun MainApp() {
 
-    val navController =
-        rememberNavController()
+    val navController = rememberNavController()
 
     var selectedScreen by remember {
         mutableStateOf("home")
     }
 
     Scaffold(
-
         containerColor = Cream,
 
         topBar = {
@@ -377,10 +158,7 @@ fun MainApp(
                         )
 
                         Text(
-                            text =
-                                "Welcome, ${
-                                    userName.substringBefore(" ")
-                                }",
+                            text = "Your Zikr is saved on this device",
                             color = LightYellow,
                             fontSize = 12.sp
                         )
@@ -390,23 +168,22 @@ fun MainApp(
                 actions = {
 
                     IconButton(
-                        onClick = onLogout
+                        onClick = {
+                            // No online account/logout required.
+                        }
                     ) {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.Logout,
-                            contentDescription =
-                                "Logout",
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Local App",
                             tint = Color.White
                         )
                     }
                 },
 
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = DarkBlue
-                    )
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBlue
+                )
             )
         },
 
@@ -418,17 +195,13 @@ fun MainApp(
 
                 NavigationBarItem(
 
-                    selected =
-                        selectedScreen == "home",
+                    selected = selectedScreen == "home",
 
                     onClick = {
 
                         selectedScreen = "home"
 
-                        navController.navigate(
-                            "home"
-                        ) {
-
+                        navController.navigate("home") {
                             launchSingleTop = true
                         }
                     },
@@ -436,10 +209,8 @@ fun MainApp(
                     icon = {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.MenuBook,
-                            contentDescription =
-                                "Zikr"
+                            imageVector = Icons.Default.MenuBook,
+                            contentDescription = "Zikr"
                         )
                     },
 
@@ -447,39 +218,26 @@ fun MainApp(
                         Text("Zikr")
                     },
 
-                    colors =
-                        NavigationBarItemDefaults.colors(
+                    colors = NavigationBarItemDefaults.colors(
 
-                            selectedIconColor =
-                                DarkBlue,
+                        selectedIconColor = DarkBlue,
+                        selectedTextColor = LightYellow,
+                        indicatorColor = LightYellow,
 
-                            selectedTextColor =
-                                LightYellow,
-
-                            indicatorColor =
-                                LightYellow,
-
-                            unselectedIconColor =
-                                Color.White,
-
-                            unselectedTextColor =
-                                Color.White
-                        )
+                        unselectedIconColor = Color.White,
+                        unselectedTextColor = Color.White
+                    )
                 )
 
                 NavigationBarItem(
 
-                    selected =
-                        selectedScreen == "report",
+                    selected = selectedScreen == "report",
 
                     onClick = {
 
                         selectedScreen = "report"
 
-                        navController.navigate(
-                            "report"
-                        ) {
-
+                        navController.navigate("report") {
                             launchSingleTop = true
                         }
                     },
@@ -487,10 +245,8 @@ fun MainApp(
                     icon = {
 
                         Icon(
-                            imageVector =
-                                Icons.Default.Assignment,
-                            contentDescription =
-                                "Record"
+                            imageVector = Icons.Default.Assignment,
+                            contentDescription = "Record"
                         )
                     },
 
@@ -498,24 +254,15 @@ fun MainApp(
                         Text("Record")
                     },
 
-                    colors =
-                        NavigationBarItemDefaults.colors(
+                    colors = NavigationBarItemDefaults.colors(
 
-                            selectedIconColor =
-                                DarkBlue,
+                        selectedIconColor = DarkBlue,
+                        selectedTextColor = LightYellow,
+                        indicatorColor = LightYellow,
 
-                            selectedTextColor =
-                                LightYellow,
-
-                            indicatorColor =
-                                LightYellow,
-
-                            unselectedIconColor =
-                                Color.White,
-
-                            unselectedTextColor =
-                                Color.White
-                        )
+                        unselectedIconColor = Color.White,
+                        unselectedTextColor = Color.White
+                    )
                 )
             }
         }
@@ -524,273 +271,45 @@ fun MainApp(
 
         NavHost(
 
-            navController =
-                navController,
+            navController = navController,
 
-            startDestination =
-                "home",
+            startDestination = "home",
 
-            modifier =
-                Modifier.padding(padding)
-
+            modifier = Modifier.padding(padding)
         ) {
 
             composable("home") {
 
-                ZikrHomeScreen(
-                    db = db,
-                    auth = auth
-                )
+                ZikrHomeScreen()
             }
 
             composable("report") {
 
-                ReportScreen(
-                    db = db,
-                    auth = auth
-                )
+                ReportScreen()
             }
         }
     }
 }
 
-
-/* ============================================================
-   LOGIN SCREEN
-   ============================================================ */
-
 @Composable
-fun LoginScreen(
-    onGoogleClick: () -> Unit
-) {
+fun ZikrHomeScreen() {
 
-    Surface(
-
-        modifier =
-            Modifier.fillMaxSize(),
-
-        color =
-            DarkBlue
-
-    ) {
-
-        Column(
-
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(28.dp),
-
-            horizontalAlignment =
-                Alignment.CenterHorizontally,
-
-            verticalArrangement =
-                Arrangement.Center
-
-        ) {
-
-            Surface(
-
-                shape =
-                    RoundedCornerShape(28.dp),
-
-                color =
-                    LightYellow,
-
-                modifier =
-                    Modifier.size(96.dp)
-
-            ) {
-
-                Box(
-
-                    contentAlignment =
-                        Alignment.Center
-
-                ) {
-
-                    Text(
-
-                        text = "ذکر",
-
-                        fontSize = 38.sp,
-
-                        fontWeight =
-                            FontWeight.Bold,
-
-                        color =
-                            DarkBlue
-                    )
-                }
-            }
-
-            Spacer(
-                modifier =
-                    Modifier.height(24.dp)
-            )
-
-            Text(
-
-                text =
-                    "Daily Zikr Tracker",
-
-                color =
-                    Color.White,
-
-                fontSize =
-                    30.sp,
-
-                fontWeight =
-                    FontWeight.Bold
-            )
-
-            Text(
-
-                text =
-                    "Keep your Zikr record safe online",
-
-                color =
-                    LightYellow,
-
-                fontSize =
-                    15.sp,
-
-                textAlign =
-                    TextAlign.Center,
-
-                modifier =
-                    Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(
-                modifier =
-                    Modifier.height(38.dp)
-            )
-
-            Button(
-
-                onClick =
-                    onGoogleClick,
-
-                colors =
-                    ButtonDefaults.buttonColors(
-
-                        containerColor =
-                            LightYellow,
-
-                        contentColor =
-                            DarkBlue
-                    ),
-
-                shape =
-                    RoundedCornerShape(16.dp),
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-
-            ) {
-
-                Text(
-
-                    text =
-                        "Continue with Google",
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    fontSize =
-                        16.sp
-                )
-            }
-        }
-    }
-}
-
-
-/* ============================================================
-   ZIKR HOME
-   ============================================================ */
-
-@Composable
-fun ZikrHomeScreen(
-    db: FirebaseFirestore,
-    auth: FirebaseAuth
-) {
+    val context = LocalContext.current
 
     var totals by remember {
 
-        mutableStateOf<Map<String, Long>>(
-            emptyMap()
+        mutableStateOf(
+            zikrItems.associate {
+                it.key to getZikrTotal(
+                    context,
+                    it.key
+                )
+            }
         )
     }
 
     var inputs by remember {
-
-        mutableStateOf<Map<String, String>>(
-            emptyMap()
-        )
-    }
-
-    var loading by remember {
-        mutableStateOf(true)
-    }
-
-    LaunchedEffect(
-        auth.currentUser?.uid
-    ) {
-
-        val uid =
-            auth.currentUser?.uid
-                ?: return@LaunchedEffect
-
-        db.collection("users")
-            .document(uid)
-            .get()
-
-            .addOnSuccessListener { doc ->
-
-                totals =
-                    zikrItems.associate {
-
-                        it.key to
-                            (
-                                doc.getLong(
-                                    it.key
-                                ) ?: 0L
-                            )
-                    }
-
-                loading = false
-            }
-
-            .addOnFailureListener {
-
-                loading = false
-            }
-    }
-
-    if (loading) {
-
-        Box(
-
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(Cream),
-
-            contentAlignment =
-                Alignment.Center
-
-        ) {
-
-            CircularProgressIndicator(
-                color = DarkBlue
-            )
-        }
-
-        return
+        mutableStateOf<Map<String, String>>(emptyMap())
     }
 
     LazyColumn(
@@ -803,36 +322,25 @@ fun ZikrHomeScreen(
 
         verticalArrangement =
             Arrangement.spacedBy(12.dp)
-
     ) {
 
         item {
 
             Text(
+                text = "Add Today's Zikr",
 
-                text =
-                    "Add Today's Zikr",
-
-                color =
-                    DarkBlue,
-
-                fontSize =
-                    24.sp,
-
-                fontWeight =
-                    FontWeight.Bold
+                color = DarkBlue,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
             )
 
             Text(
 
                 text =
-                    "Enter the number you have recited and save it. The amount will be added to your lifetime total.",
+                    "Enter the number you have recited and save it. Your total is stored safely on this device.",
 
-                color =
-                    TextDark,
-
-                fontSize =
-                    14.sp,
+                color = TextDark,
+                fontSize = 14.sp,
 
                 modifier =
                     Modifier.padding(
@@ -862,18 +370,12 @@ fun ZikrHomeScreen(
                         }
 
                     inputs =
-                        inputs +
-                            (
-                                item.key to
-                                    filtered
-                            )
+                        inputs + (
+                            item.key to filtered
+                        )
                 },
 
                 onSave = {
-
-                    val uid =
-                        auth.currentUser?.uid
-                            ?: return@ZikrEntryCard
 
                     val amount =
                         inputs[item.key]
@@ -884,42 +386,22 @@ fun ZikrHomeScreen(
                         return@ZikrEntryCard
                     }
 
-                    val current =
-                        totals[item.key] ?: 0L
-
                     val newTotal =
-                        current + amount
-
-                    db.collection("users")
-                        .document(uid)
-
-                        .set(
-
-                            mapOf(
-                                item.key to
-                                    newTotal
-                            ),
-
-                            SetOptions.merge()
-
+                        addZikrTotal(
+                            context = context,
+                            key = item.key,
+                            amount = amount
                         )
 
-                        .addOnSuccessListener {
+                    totals =
+                        totals + (
+                            item.key to newTotal
+                        )
 
-                            totals =
-                                totals +
-                                    (
-                                        item.key to
-                                            newTotal
-                                    )
-
-                            inputs =
-                                inputs +
-                                    (
-                                        item.key to
-                                            ""
-                                    )
-                        }
+                    inputs =
+                        inputs + (
+                            item.key to ""
+                        )
                 }
             )
         }
@@ -935,8 +417,7 @@ fun ZikrHomeScreen(
 
                 colors =
                     CardDefaults.cardColors(
-                        containerColor =
-                            DarkBlue
+                        containerColor = DarkBlue
                     ),
 
                 shape =
@@ -944,24 +425,19 @@ fun ZikrHomeScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
-
             ) {
 
                 Column(
-
                     modifier =
                         Modifier.padding(18.dp)
-
                 ) {
 
                     Text(
 
                         text =
-                            "Your total record is always available online.",
+                            "Your Zikr record is saved on this phone.",
 
-                        color =
-                            LightYellow,
-
+                        color = LightYellow,
                         fontWeight =
                             FontWeight.Bold
                     )
@@ -969,13 +445,10 @@ fun ZikrHomeScreen(
                     Text(
 
                         text =
-                            "No date-wise or month-wise history is stored.",
+                            "No Google account, Firebase or internet connection is required.",
 
-                        color =
-                            Color.White,
-
-                        fontSize =
-                            13.sp,
+                        color = Color.White,
+                        fontSize = 13.sp,
 
                         modifier =
                             Modifier.padding(top = 5.dp)
@@ -985,11 +458,6 @@ fun ZikrHomeScreen(
         }
     }
 }
-
-
-/* ============================================================
-   ZIKR ENTRY CARD
-   ============================================================ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1006,15 +474,13 @@ fun ZikrEntryCard(
 
     onSave:
         () -> Unit
-
 ) {
 
     Card(
 
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    Color.White
+                containerColor = Color.White
             ),
 
         shape =
@@ -1022,35 +488,27 @@ fun ZikrEntryCard(
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation =
-                    3.dp
+                defaultElevation = 3.dp
             ),
 
         modifier =
             Modifier.fillMaxWidth()
-
     ) {
 
         Column(
-
             modifier =
                 Modifier.padding(16.dp)
-
         ) {
 
             Text(
 
-                text =
-                    item.title,
+                text = item.title,
 
-                color =
-                    DarkBlue,
-
+                color = DarkBlue,
                 fontWeight =
                     FontWeight.Bold,
 
-                fontSize =
-                    18.sp
+                fontSize = 18.sp
             )
 
             Spacer(
@@ -1065,13 +523,11 @@ fun ZikrEntryCard(
 
                 verticalAlignment =
                     Alignment.CenterVertically
-
             ) {
 
                 OutlinedTextField(
 
-                    value =
-                        input,
+                    value = input,
 
                     onValueChange =
                         onInputChange,
@@ -1080,8 +536,7 @@ fun ZikrEntryCard(
                         Text("Enter count")
                     },
 
-                    singleLine =
-                        true,
+                    singleLine = true,
 
                     keyboardOptions =
                         KeyboardOptions(
@@ -1131,14 +586,10 @@ fun ZikrEntryCard(
 
                     modifier =
                         Modifier.height(54.dp)
-
                 ) {
 
                     Text(
-
-                        text =
-                            "Save",
-
+                        text = "Save",
                         fontWeight =
                             FontWeight.Bold
                     )
@@ -1150,14 +601,12 @@ fun ZikrEntryCard(
                 text =
                     "Current total: $total",
 
-                color =
-                    DarkBlue2,
+                color = DarkBlue2,
 
                 fontWeight =
                     FontWeight.SemiBold,
 
-                fontSize =
-                    13.sp,
+                fontSize = 13.sp,
 
                 modifier =
                     Modifier.padding(top = 8.dp)
@@ -1166,61 +615,30 @@ fun ZikrEntryCard(
     }
 }
 
-
-/* ============================================================
-   REPORT SCREEN
-   ============================================================ */
-
 @Composable
-fun ReportScreen(
+fun ReportScreen() {
 
-    db: FirebaseFirestore,
+    val context = LocalContext.current
 
-    auth: FirebaseAuth
-
-) {
-
-    var totals by remember {
-
-        mutableStateOf<Map<String, Long>>(
-            emptyMap()
-        )
+    var refresh by remember {
+        mutableStateOf(0)
     }
 
-    LaunchedEffect(
-        auth.currentUser?.uid
-    ) {
+    // Reading refresh keeps the report updated when navigating back.
+    val totals =
+        zikrItems.associate {
 
-        val uid =
-            auth.currentUser?.uid
-                ?: return@LaunchedEffect
-
-        db.collection("users")
-            .document(uid)
-
-            .addSnapshotListener { doc, _ ->
-
-                if (
-                    doc != null &&
-                    doc.exists()
-                ) {
-
-                    totals =
-                        zikrItems.associate {
-
-                            it.key to
-                                (
-                                    doc.getLong(
-                                        it.key
-                                    ) ?: 0L
-                                )
-                        }
-                }
-            }
-    }
+            it.key to getZikrTotal(
+                context,
+                it.key
+            )
+        }
 
     val grandTotal =
         totals.values.sum()
+
+    // Prevent unused state warning and allow recomposition.
+    refresh.hashCode()
 
     LazyColumn(
 
@@ -1232,36 +650,26 @@ fun ReportScreen(
 
         verticalArrangement =
             Arrangement.spacedBy(10.dp)
-
     ) {
 
         item {
 
             Text(
 
-                text =
-                    "My Zikr Record",
+                text = "My Zikr Record",
 
-                color =
-                    DarkBlue,
-
-                fontSize =
-                    26.sp,
-
+                color = DarkBlue,
+                fontSize = 26.sp,
                 fontWeight =
                     FontWeight.Bold
             )
 
             Text(
 
-                text =
-                    "Lifetime totals",
+                text = "Lifetime totals saved on this device",
 
-                color =
-                    TextDark,
-
-                fontSize =
-                    14.sp,
+                color = TextDark,
+                fontSize = 14.sp,
 
                 modifier =
                     Modifier.padding(
@@ -1286,7 +694,6 @@ fun ReportScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
-
             ) {
 
                 Column(
@@ -1296,16 +703,13 @@ fun ReportScreen(
 
                     horizontalAlignment =
                         Alignment.CenterHorizontally
-
                 ) {
 
                     Text(
 
-                        text =
-                            "Grand Total",
+                        text = "Grand Total",
 
-                        color =
-                            LightYellow,
+                        color = LightYellow,
 
                         fontWeight =
                             FontWeight.Bold
@@ -1316,11 +720,9 @@ fun ReportScreen(
                         text =
                             grandTotal.toString(),
 
-                        color =
-                            Color.White,
+                        color = Color.White,
 
-                        fontSize =
-                            34.sp,
+                        fontSize = 34.sp,
 
                         fontWeight =
                             FontWeight.Bold,
@@ -1350,7 +752,6 @@ fun ReportScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
-
             ) {
 
                 Row(
@@ -1365,7 +766,6 @@ fun ReportScreen(
 
                     verticalAlignment =
                         Alignment.CenterVertically
-
                 ) {
 
                     Text(
@@ -1376,8 +776,7 @@ fun ReportScreen(
                         color =
                             TextDark,
 
-                        fontSize =
-                            16.sp,
+                        fontSize = 16.sp,
 
                         fontWeight =
                             FontWeight.SemiBold,
@@ -1394,8 +793,7 @@ fun ReportScreen(
                         color =
                             DarkBlue,
 
-                        fontSize =
-                            21.sp,
+                        fontSize = 21.sp,
 
                         fontWeight =
                             FontWeight.Bold
@@ -1406,11 +804,6 @@ fun ReportScreen(
     }
 }
 
-
-/* ============================================================
-   THEME
-   ============================================================ */
-
 @Composable
 fun DailyZikrTheme(
     content:
@@ -1420,7 +813,7 @@ fun DailyZikrTheme(
     MaterialTheme(
 
         colorScheme =
-            lightColorScheme(
+            androidx.compose.material3.lightColorScheme(
 
                 primary =
                     DarkBlue,
