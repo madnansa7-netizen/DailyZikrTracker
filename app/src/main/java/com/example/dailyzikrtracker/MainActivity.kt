@@ -6,11 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,40 +18,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.platform.LocalContext
 
 private val DarkBlue = Color(0xFF102A43)
 private val DarkBlue2 = Color(0xFF163D5C)
@@ -62,20 +46,20 @@ private val Gold = Color(0xFFE4B64A)
 private val Cream = Color(0xFFFFFBEB)
 private val TextDark = Color(0xFF1F2933)
 
+private const val PREFS_NAME = "daily_zikr_tracker"
+
 data class ZikrItem(
     val key: String,
     val title: String
 )
 
-val zikrItems = listOf(
+private val zikrItems = listOf(
     ZikrItem("darood", "Darood Shareef"),
     ZikrItem("kalma", "Pehla Kalma"),
     ZikrItem("astaghfar", "Astaghfar"),
     ZikrItem("ikhlas", "Surah Ikhlas"),
     ZikrItem("fatiha", "Surah Fatiha")
 )
-
-private const val PREFS_NAME = "daily_zikr_tracker"
 
 class MainActivity : ComponentActivity() {
 
@@ -84,7 +68,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DailyZikrTheme {
-                MainApp()
+                DailyZikrApp()
             }
         }
     }
@@ -96,14 +80,14 @@ private fun getPrefs(context: Context) =
         Context.MODE_PRIVATE
     )
 
-private fun getZikrTotal(
+private fun getTotal(
     context: Context,
     key: String
 ): Long {
     return getPrefs(context).getLong(key, 0L)
 }
 
-private fun addZikrTotal(
+private fun addTotal(
     context: Context,
     key: String,
     amount: Long
@@ -111,349 +95,326 @@ private fun addZikrTotal(
 
     val prefs = getPrefs(context)
 
-    val current = prefs.getLong(key, 0L)
+    val oldValue = prefs.getLong(key, 0L)
 
-    val newTotal = current + amount
+    val newValue = oldValue + amount
 
     prefs.edit()
-        .putLong(key, newTotal)
+        .putLong(key, newValue)
         .apply()
 
-    return newTotal
+    return newValue
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp() {
+fun DailyZikrApp() {
 
-    val navController = rememberNavController()
+    val context = LocalContext.current
 
-    var selectedScreen by remember {
-        mutableStateOf("home")
+    var showRecord by remember {
+        mutableStateOf(false)
     }
 
-    Scaffold(
+    if (showRecord) {
 
-        containerColor = Cream,
-
-        topBar = {
-
-            TopAppBar(
-
-                title = {
-
-                    Column {
-
-                        Text(
-                            text = "Daily Zikr",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = "Your Zikr is saved on this device",
-                            color = LightYellow,
-                            fontSize = 12.sp
-                        )
-                    }
-                },
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkBlue
-                )
+        RecordScreen(
+            onBack = {
+                showRecord = false
             }
-        },
+        )
 
-        bottomBar = {
+    } else {
 
-            NavigationBar(
-                containerColor = DarkBlue
-            ) {
-
-                NavigationBarItem(
-
-                    selected = selectedScreen == "home",
-
-                    onClick = {
-
-                        selectedScreen = "home"
-
-                        navController.navigate("home") {
-                            launchSingleTop = true
-                        }
-                    },
-
-                    icon = {
-
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = "Zikr"
-                        )
-                    },
-
-                    label = {
-                        Text("Zikr")
-                    },
-
-                    colors =
-                        NavigationBarItemDefaults.colors(
-
-                            selectedIconColor =
-                                DarkBlue,
-
-                            selectedTextColor =
-                                LightYellow,
-
-                            indicatorColor =
-                                LightYellow,
-
-                            unselectedIconColor =
-                                Color.White,
-
-                            unselectedTextColor =
-                                Color.White
-                        )
-                )
-
-                NavigationBarItem(
-
-                    selected = selectedScreen == "report",
-
-                    onClick = {
-
-                        selectedScreen = "report"
-
-                        navController.navigate("report") {
-                            launchSingleTop = true
-                        }
-                    },
-
-                    icon = {
-
-                        Icon(
-                            imageVector = Icons.Default.Assignment,
-                            contentDescription = "Record"
-                        )
-                    },
-
-                    label = {
-                        Text("Record")
-                    },
-
-                    colors =
-                        NavigationBarItemDefaults.colors(
-
-                            selectedIconColor =
-                                DarkBlue,
-
-                            selectedTextColor =
-                                LightYellow,
-
-                            indicatorColor =
-                                LightYellow,
-
-                            unselectedIconColor =
-                                Color.White,
-
-                            unselectedTextColor =
-                                Color.White
-                        )
-                )
+        HomeScreen(
+            onRecordClick = {
+                showRecord = true
             }
-        }
-
-    ) { padding ->
-
-        NavHost(
-
-            navController = navController,
-
-            startDestination = "home",
-
-            modifier =
-                Modifier.padding(padding)
-        ) {
-
-            composable("home") {
-                ZikrHomeScreen()
-            }
-
-            composable("report") {
-                ReportScreen()
-            }
-        }
+        )
     }
 }
 
 @Composable
-fun ZikrHomeScreen() {
+fun HomeScreen(
+    onRecordClick: () -> Unit
+) {
 
     val context = LocalContext.current
 
     var totals by remember {
 
         mutableStateOf(
-            zikrItems.associate {
-                it.key to getZikrTotal(
+            zikrItems.associate { item ->
+                item.key to getTotal(
                     context,
-                    it.key
+                    item.key
                 )
             }
         )
     }
 
     var inputs by remember {
-        mutableStateOf<Map<String, String>>(emptyMap())
+        mutableStateOf<Map<String, String>>(
+            emptyMap()
+        )
     }
 
-    LazyColumn(
+    Column(
 
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(Cream)
-                .padding(16.dp),
-
-        verticalArrangement =
-            Arrangement.spacedBy(12.dp)
     ) {
 
-        item {
+        Header(
+            title = "Daily Zikr",
+            subtitle = "Your Zikr is saved on this device"
+        )
 
-            Text(
-                text = "Add Today's Zikr",
-                color = DarkBlue,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
+        LazyColumn(
 
-            Text(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(16.dp),
 
-                text =
-                    "Enter the number you have recited and save it. Your total is stored safely on this device.",
+            verticalArrangement =
+                Arrangement.spacedBy(12.dp)
+        ) {
 
-                color = TextDark,
-                fontSize = 14.sp,
+            item {
 
-                modifier =
-                    Modifier.padding(
-                        top = 4.dp,
-                        bottom = 8.dp
-                    )
-            )
-        }
+                Text(
 
-        items(zikrItems) { item ->
+                    text = "Add Today's Zikr",
 
-            ZikrEntryCard(
+                    color = DarkBlue,
 
-                item = item,
+                    fontSize = 25.sp,
 
-                input =
-                    inputs[item.key] ?: "",
+                    fontWeight =
+                        FontWeight.Bold
+                )
 
-                total =
-                    totals[item.key] ?: 0L,
+                Text(
 
-                onInputChange = { value ->
+                    text =
+                        "Enter your recitation count and press Save.",
 
-                    val filtered =
-                        value.filter {
-                            it.isDigit()
-                        }
+                    color = TextDark,
 
-                    inputs =
-                        inputs + (
-                            item.key to filtered
-                        )
-                },
+                    fontSize = 14.sp,
 
-                onSave = {
-
-                    val amount =
-                        inputs[item.key]
-                            ?.toLongOrNull()
-                            ?: 0L
-
-                    if (amount <= 0L) {
-                        return@ZikrEntryCard
-                    }
-
-                    val newTotal =
-                        addZikrTotal(
-                            context,
-                            item.key,
-                            amount
-                        )
-
-                    totals =
-                        totals + (
-                            item.key to newTotal
-                        )
-
-                    inputs =
-                        inputs + (
-                            item.key to ""
-                        )
-                }
-            )
-        }
-
-        item {
-
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
-
-            Card(
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = DarkBlue
-                    ),
-
-                shape =
-                    RoundedCornerShape(18.dp),
-
-                modifier =
-                    Modifier.fillMaxWidth()
-            ) {
-
-                Column(
                     modifier =
-                        Modifier.padding(18.dp)
+                        Modifier.padding(
+                            top = 4.dp,
+                            bottom = 8.dp
+                        )
+                )
+            }
+
+            items(zikrItems) { item ->
+
+                ZikrCard(
+
+                    item = item,
+
+                    input =
+                        inputs[item.key] ?: "",
+
+                    total =
+                        totals[item.key] ?: 0L,
+
+                    onInputChange = { value ->
+
+                        val cleanValue =
+                            value.filter {
+                                it.isDigit()
+                            }
+
+                        inputs =
+                            inputs +
+                                (
+                                    item.key
+                                        to cleanValue
+                                )
+                    },
+
+                    onSave = {
+
+                        val amount =
+                            inputs[item.key]
+                                ?.toLongOrNull()
+                                ?: 0L
+
+                        if (amount > 0L) {
+
+                            val newTotal =
+                                addTotal(
+                                    context,
+                                    item.key,
+                                    amount
+                                )
+
+                            totals =
+                                totals +
+                                    (
+                                        item.key
+                                            to newTotal
+                                    )
+
+                            inputs =
+                                inputs +
+                                    (
+                                        item.key
+                                            to ""
+                                    )
+                        }
+                    }
+                )
+            }
+
+            item {
+
+                Spacer(
+                    modifier =
+                        Modifier.height(4.dp)
+                )
+
+                Card(
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(18.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                DarkBlue
+                        )
                 ) {
 
-                    Text(
-
-                        text =
-                            "Your Zikr record is saved on this phone.",
-
-                        color = LightYellow,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-
-                        text =
-                            "No Google account, Firebase or internet connection is required.",
-
-                        color = Color.White,
-                        fontSize = 13.sp,
+                    Column(
 
                         modifier =
-                            Modifier.padding(top = 5.dp)
-                    )
+                            Modifier.padding(18.dp)
+                    ) {
+
+                        Text(
+
+                            text =
+                                "100% Local Storage",
+
+                            color =
+                                LightYellow,
+
+                            fontSize = 18.sp,
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                        Text(
+
+                            text =
+                                "No Google Login • No Firebase • No Internet Required",
+
+                            color =
+                                Color.White,
+
+                            fontSize = 13.sp,
+
+                            modifier =
+                                Modifier.padding(
+                                    top = 5.dp
+                                )
+                        )
+                    }
                 }
             }
+        }
+
+        Button(
+
+            onClick = onRecordClick,
+
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    ),
+
+            shape =
+                RoundedCornerShape(14.dp),
+
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        DarkBlue,
+
+                    contentColor =
+                        LightYellow
+                )
+        ) {
+
+            Text(
+                text = "View My Zikr Record",
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ZikrEntryCard(
+fun Header(
+    title: String,
+    subtitle: String
+) {
+
+    Column(
+
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(DarkBlue)
+                .padding(18.dp)
+    ) {
+
+        Text(
+
+            text = title,
+
+            color = Color.White,
+
+            fontSize = 23.sp,
+
+            fontWeight =
+                FontWeight.Bold
+        )
+
+        Text(
+
+            text = subtitle,
+
+            color = LightYellow,
+
+            fontSize = 12.sp,
+
+            modifier =
+                Modifier.padding(
+                    top = 3.dp
+                )
+        )
+    }
+}
+
+@Composable
+fun ZikrCard(
 
     item: ZikrItem,
 
@@ -461,17 +422,17 @@ fun ZikrEntryCard(
 
     total: Long,
 
-    onInputChange: (String) -> Unit,
+    onInputChange:
+        (String) -> Unit,
 
-    onSave: () -> Unit
+    onSave:
+        () -> Unit
 ) {
 
     Card(
 
-        colors =
-            CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
+        modifier =
+            Modifier.fillMaxWidth(),
 
         shape =
             RoundedCornerShape(18.dp),
@@ -481,22 +442,31 @@ fun ZikrEntryCard(
                 defaultElevation = 3.dp
             ),
 
-        modifier =
-            Modifier.fillMaxWidth()
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    Color.White
+            )
     ) {
 
         Column(
+
             modifier =
                 Modifier.padding(16.dp)
         ) {
 
             Text(
 
-                text = item.title,
+                text =
+                    item.title,
 
-                color = DarkBlue,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                color =
+                    DarkBlue,
+
+                fontSize = 18.sp,
+
+                fontWeight =
+                    FontWeight.Bold
             )
 
             Spacer(
@@ -520,48 +490,33 @@ fun ZikrEntryCard(
                     onValueChange =
                         onInputChange,
 
+                    modifier =
+                        Modifier.weight(1f),
+
+                    singleLine = true,
+
                     placeholder = {
                         Text("Enter count")
                     },
-
-                    singleLine = true,
 
                     keyboardOptions =
                         KeyboardOptions(
                             keyboardType =
                                 KeyboardType.Number
-                        ),
-
-                    modifier =
-                        Modifier.weight(1f),
-
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-
-                            focusedBorderColor =
-                                Gold,
-
-                            unfocusedBorderColor =
-                                DarkBlue2,
-
-                            focusedLabelColor =
-                                DarkBlue
                         )
                 )
 
                 Spacer(
                     modifier =
-                        Modifier.width(10.dp)
+                        Modifier.width(8.dp)
                 )
 
                 Button(
 
-                    onClick =
-                        onSave,
+                    onClick = onSave,
 
                     colors =
                         ButtonDefaults.buttonColors(
-
                             containerColor =
                                 DarkBlue,
 
@@ -570,15 +525,13 @@ fun ZikrEntryCard(
                         ),
 
                     shape =
-                        RoundedCornerShape(12.dp),
-
-                    modifier =
-                        Modifier.height(54.dp)
+                        RoundedCornerShape(12.dp)
                 ) {
 
                     Text(
                         text = "Save",
-                        fontWeight = FontWeight.Bold
+                        fontWeight =
+                            FontWeight.Bold
                     )
                 }
             }
@@ -588,199 +541,226 @@ fun ZikrEntryCard(
                 text =
                     "Current total: $total",
 
-                color = DarkBlue2,
-
-                fontWeight = FontWeight.SemiBold,
+                color =
+                    DarkBlue2,
 
                 fontSize = 13.sp,
 
+                fontWeight =
+                    FontWeight.SemiBold,
+
                 modifier =
-                    Modifier.padding(top = 8.dp)
+                    Modifier.padding(
+                        top = 8.dp
+                    )
             )
         }
     }
 }
 
 @Composable
-fun ReportScreen() {
+fun RecordScreen(
+    onBack: () -> Unit
+) {
 
     val context = LocalContext.current
 
-    var refresh by remember {
-        mutableStateOf(0)
-    }
-
     val totals =
-        zikrItems.associate {
+        zikrItems.associate { item ->
 
-            it.key to getZikrTotal(
+            item.key to getTotal(
                 context,
-                it.key
+                item.key
             )
         }
 
     val grandTotal =
         totals.values.sum()
 
-    refresh.hashCode()
-
-    LazyColumn(
+    Column(
 
         modifier =
             Modifier
                 .fillMaxSize()
                 .background(Cream)
-                .padding(16.dp),
-
-        verticalArrangement =
-            Arrangement.spacedBy(10.dp)
     ) {
 
-        item {
+        Header(
 
-            Text(
+            title = "My Zikr Record",
 
-                text = "My Zikr Record",
+            subtitle =
+                "All data saved on this phone"
+        )
 
-                color = DarkBlue,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
+        LazyColumn(
 
-            Text(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(16.dp),
 
-                text =
-                    "Lifetime totals saved on this device",
+            verticalArrangement =
+                Arrangement.spacedBy(10.dp)
+        ) {
 
-                color = TextDark,
-                fontSize = 14.sp,
+            item {
 
-                modifier =
-                    Modifier.padding(
-                        top = 3.dp,
-                        bottom = 6.dp
-                    )
-            )
-        }
-
-        item {
-
-            Card(
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            DarkBlue
-                    ),
-
-                shape =
-                    RoundedCornerShape(20.dp),
-
-                modifier =
-                    Modifier.fillMaxWidth()
-            ) {
-
-                Column(
+                Card(
 
                     modifier =
-                        Modifier.padding(20.dp),
+                        Modifier.fillMaxWidth(),
 
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
+                    shape =
+                        RoundedCornerShape(20.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                DarkBlue
+                        )
                 ) {
 
-                    Text(
-
-                        text = "Grand Total",
-
-                        color = LightYellow,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-
-                        text =
-                            grandTotal.toString(),
-
-                        color = Color.White,
-
-                        fontSize = 34.sp,
-
-                        fontWeight = FontWeight.Bold,
+                    Column(
 
                         modifier =
-                            Modifier.padding(top = 5.dp)
-                    )
+                            Modifier.padding(20.dp),
+
+                        horizontalAlignment =
+                            Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+
+                            text =
+                                "Grand Total",
+
+                            color =
+                                LightYellow,
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+
+                        Text(
+
+                            text =
+                                grandTotal.toString(),
+
+                            color =
+                                Color.White,
+
+                            fontSize = 36.sp,
+
+                            fontWeight =
+                                FontWeight.Bold,
+
+                            modifier =
+                                Modifier.padding(
+                                    top = 5.dp
+                                )
+                        )
+                    }
+                }
+            }
+
+            items(zikrItems) { item ->
+
+                val total =
+                    totals[item.key] ?: 0L
+
+                Card(
+
+                    modifier =
+                        Modifier.fillMaxWidth(),
+
+                    shape =
+                        RoundedCornerShape(16.dp),
+
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                Color.White
+                        )
+                ) {
+
+                    Row(
+
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(17.dp),
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Text(
+
+                            text =
+                                item.title,
+
+                            color =
+                                TextDark,
+
+                            fontSize = 16.sp,
+
+                            fontWeight =
+                                FontWeight.SemiBold,
+
+                            modifier =
+                                Modifier.weight(1f)
+                        )
+
+                        Text(
+
+                            text =
+                                total.toString(),
+
+                            color =
+                                DarkBlue,
+
+                            fontSize = 21.sp,
+
+                            fontWeight =
+                                FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
 
-        items(zikrItems) { item ->
+        Button(
 
-            val total =
-                totals[item.key] ?: 0L
+            onClick = onBack,
 
-            Card(
-
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            Color.White
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
                     ),
 
-                shape =
-                    RoundedCornerShape(16.dp),
+            shape =
+                RoundedCornerShape(14.dp),
 
-                modifier =
-                    Modifier.fillMaxWidth()
-            ) {
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        DarkBlue,
 
-                Row(
+                    contentColor =
+                        LightYellow
+                )
+        ) {
 
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = 16.dp,
-                                vertical = 17.dp
-                            ),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Text(
-
-                        text =
-                            item.title,
-
-                        color =
-                            TextDark,
-
-                        fontSize = 16.sp,
-
-                        fontWeight =
-                            FontWeight.SemiBold,
-
-                        modifier =
-                            Modifier.weight(1f)
-                    )
-
-                    Text(
-
-                        text =
-                            total.toString(),
-
-                        color =
-                            DarkBlue,
-
-                        fontSize = 21.sp,
-
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-            }
+            Text(
+                text = "Back to Zikr",
+                fontWeight =
+                    FontWeight.Bold
+            )
         }
     }
 }
@@ -795,21 +775,29 @@ fun DailyZikrTheme(
         colorScheme =
             androidx.compose.material3.lightColorScheme(
 
-                primary = DarkBlue,
+                primary =
+                    DarkBlue,
 
-                secondary = Gold,
+                secondary =
+                    Gold,
 
-                background = Cream,
+                background =
+                    Cream,
 
-                surface = Color.White,
+                surface =
+                    Color.White,
 
-                onPrimary = Color.White,
+                onPrimary =
+                    Color.White,
 
-                onSecondary = DarkBlue,
+                onSecondary =
+                    DarkBlue,
 
-                onBackground = TextDark,
+                onBackground =
+                    TextDark,
 
-                onSurface = TextDark
+                onSurface =
+                    TextDark
             ),
 
         content = content
