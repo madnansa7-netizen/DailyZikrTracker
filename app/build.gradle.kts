@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -19,8 +18,7 @@ android {
 
     buildTypes {
         getByName("debug") {
-            // Use the standard Android debug signing configuration.
-            // GitHub Actions will automatically create/use the debug keystore.
+            // Standard debug signing
         }
     }
 
@@ -48,12 +46,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.navigation:navigation-compose:2.8.9")
-
-    implementation(platform("com.google.firebase:firebase-bom:33.15.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-
-    implementation("com.google.android.gms:play-services-auth:21.4.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
