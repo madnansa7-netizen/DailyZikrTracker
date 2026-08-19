@@ -2,7 +2,6 @@ package com.example.dailyzikrtracker
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -45,6 +44,16 @@ private val Gold = Color(0xFFE4B64A)
 private val Cream = Color(0xFFFFFBEB)
 private val TextDark = Color(0xFF1F2933)
 
+/*
+ * IMPORTANT:
+ *
+ * This is the WEB OAuth Client ID from google-services.json.
+ *
+ * It is client_type = 3 in the uploaded Firebase configuration.
+ */
+private const val WEB_CLIENT_ID =
+    "397312893941-poqlnphvncgr86ri825dj8sf0oo2na6c.apps.googleusercontent.com"
+
 data class ZikrItem(
     val key: String,
     val title: String
@@ -62,7 +71,6 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleClient: GoogleSignInClient
-
     private val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,34 +79,22 @@ class MainActivity : ComponentActivity() {
         auth = FirebaseAuth.getInstance()
 
         /*
-         * IMPORTANT:
-         * This must be the WEB OAuth Client ID.
-         * Firebase normally creates this automatically.
+         * Google Sign-In configuration.
+         *
+         * We deliberately use the verified WEB client ID from
+         * google-services.json instead of relying on a generated
+         * default_web_client_id resource.
          */
-        val webClientId =
-            getString(R.string.default_web_client_id)
-
-        Log.d(
-            "DailyZikrGoogle",
-            "Web Client ID loaded"
+        val gso = GoogleSignInOptions.Builder(
+            GoogleSignInOptions.DEFAULT_SIGN_IN
         )
+            .requestIdToken(WEB_CLIENT_ID)
+            .requestEmail()
+            .build()
 
-        val gso =
-            GoogleSignInOptions.Builder(
-                GoogleSignInOptions.DEFAULT_SIGN_IN
-            )
-                .requestIdToken(webClientId)
-                .requestEmail()
-                .build()
-
-        googleClient =
-            GoogleSignIn.getClient(
-                this,
-                gso
-            )
+        googleClient = GoogleSignIn.getClient(this, gso)
 
         setContent {
-
             DailyZikrTheme {
 
                 if (auth.currentUser == null) {
@@ -112,20 +108,10 @@ class MainActivity : ComponentActivity() {
                 } else {
 
                     MainApp(
-                        userName =
-                            auth.currentUser?.displayName
-                                ?: "User",
+                        userName = auth.currentUser?.displayName ?: "User",
 
                         onLogout = {
-
-                            auth.signOut()
-
-                            googleClient
-                                .signOut()
-                                .addOnCompleteListener {
-
-                                    recreate()
-                                }
+                            logoutUser()
                         },
 
                         db = db,
@@ -138,61 +124,43 @@ class MainActivity : ComponentActivity() {
 
     private fun signInWithGoogle() {
 
-        try {
+        /*
+         * Sign out the Google client first.
+         *
+         * This forces the account chooser/sign-in flow to refresh
+         * instead of potentially using an old cached configuration.
+         */
+        googleClient.signOut()
+            .addOnCompleteListener {
 
-            /*
-             * Sign out from the Google client first.
-             * This helps when testing with different accounts.
-             */
-            googleClient
-                .signOut()
-                .addOnCompleteListener {
+                try {
 
-                    try {
+                    startActivityForResult(
+                        googleClient.signInIntent,
+                        RC_SIGN_IN
+                    )
 
-                        val signInIntent =
-                            googleClient.signInIntent
+                } catch (e: Exception) {
 
-                        startActivityForResult(
-                            signInIntent,
-                            RC_SIGN_IN
-                        )
-
-                    } catch (e: Exception) {
-
-                        Log.e(
-                            "DailyZikrGoogle",
-                            "Could not start Google Sign-In",
-                            e
-                        )
-
-                        Toast.makeText(
-                            this,
-                            "Could not start Google Sign-In:\n${e.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                    showError(
+                        "Could not start Google Sign-In.\n\n${e.message}"
+                    )
                 }
-
-        } catch (e: Exception) {
-
-            Log.e(
-                "DailyZikrGoogle",
-                "Google Sign-In start error",
-                e
-            )
-
-            Toast.makeText(
-                this,
-                "Google Sign-In error:\n${e.message}",
-                Toast.LENGTH_LONG
-            ).show()
-        }
+            }
     }
 
-    @Deprecated(
-        "Use Activity Result APIs in a future refactor."
-    )
+    private fun logoutUser() {
+
+        googleClient.signOut()
+            .addOnCompleteListener {
+
+                auth.signOut()
+
+                recreate()
+            }
+    }
+
+    @Deprecated("Activity Result API can be used in a future refactor.")
     override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
@@ -209,150 +177,158 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        try {
+        /*
+         * Get the Google account returned by Google Play Services.
+         */
+        val task =
+            GoogleSignIn.getSignedInAccountFromIntent(data)
 
-            val task =
-                GoogleSignIn
-                    .getSignedInAccountFromIntent(data)
+        try {
 
             val account =
                 task.getResult(
                     ApiException::class.java
                 )
 
-            Log.d(
-                "DailyZikrGoogle",
-                "Google account received: ${account.email}"
-            )
-
             val idToken =
                 account.idToken
 
+            /*
+             * If Google returned no ID token, show the actual problem.
+             */
             if (idToken.isNullOrBlank()) {
 
-                Log.e(
-                    "DailyZikrGoogle",
-                    "Google returned NULL ID token"
+                showError(
+                    "Google did not return an ID token."
                 )
-
-                Toast.makeText(
-                    this,
-                    "Google Sign-In failed:\nNo ID token received",
-                    Toast.LENGTH_LONG
-                ).show()
 
                 return
             }
 
+            /*
+             * Convert Google account into Firebase credential.
+             */
             val credential =
                 GoogleAuthProvider.getCredential(
                     idToken,
                     null
                 )
 
-            auth.signInWithCredential(
-                credential
-            )
-                .addOnCompleteListener(this) { authTask ->
+            auth.signInWithCredential(credential)
+                .addOnCompleteListener(this) { signInTask ->
 
-                    if (authTask.isSuccessful) {
+                    if (signInTask.isSuccessful) {
 
-                        Log.d(
-                            "DailyZikrGoogle",
-                            "Firebase Google Sign-In SUCCESS"
-                        )
-
-                        Toast.makeText(
-                            this,
-                            "Google Sign-In successful!",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
+                        /*
+                         * Firebase login successful.
+                         */
                         recreate()
 
                     } else {
 
                         val exception =
-                            authTask.exception
+                            signInTask.exception
 
-                        Log.e(
-                            "DailyZikrGoogle",
-                            "Firebase authentication failed",
-                            exception
+                        showError(
+                            buildFirebaseErrorMessage(
+                                exception
+                            )
                         )
-
-                        Toast.makeText(
-                            this,
-                            "Firebase sign-in failed:\n" +
-                                    (
-                                        exception?.message
-                                            ?: "Unknown error"
-                                    ),
-                            Toast.LENGTH_LONG
-                        ).show()
                     }
                 }
 
         } catch (e: ApiException) {
 
-            val statusCode =
-                e.statusCode
-
-            Log.e(
-                "DailyZikrGoogle",
-                "Google Sign-In failed. Status code: $statusCode",
-                e
+            /*
+             * This is especially important for
+             * DEVELOPER_ERROR (10).
+             *
+             * We now display the exact error code.
+             */
+            showError(
+                buildGoogleErrorMessage(e)
             )
-
-            val message =
-                when (statusCode) {
-
-                    10 ->
-                        "DEVELOPER_ERROR (10)\n" +
-                                "OAuth configuration mismatch"
-
-                    12500 ->
-                        "SIGN_IN_FAILED (12500)\n" +
-                                "Check SHA-1 and OAuth configuration"
-
-                    12501 ->
-                        "SIGN_IN_CANCELLED (12501)"
-
-                    7 ->
-                        "NETWORK_ERROR (7)\n" +
-                                "Check internet connection"
-
-                    8 ->
-                        "INTERNAL_ERROR (8)"
-
-                    else ->
-                        "Google Sign-In error code: $statusCode"
-                }
-
-            Toast.makeText(
-                this,
-                message,
-                Toast.LENGTH_LONG
-            ).show()
 
         } catch (e: Exception) {
 
-            Log.e(
-                "DailyZikrGoogle",
-                "Unexpected Google Sign-In error",
-                e
+            showError(
+                "Google Sign-In error:\n${e.message ?: "Unknown error"}"
             )
-
-            Toast.makeText(
-                this,
-                "Google Sign-In failed:\n" +
-                        (
-                            e.message
-                                ?: "Unknown error"
-                        ),
-                Toast.LENGTH_LONG
-            ).show()
         }
+    }
+
+    private fun buildGoogleErrorMessage(
+        exception: ApiException
+    ): String {
+
+        return when (exception.statusCode) {
+
+            10 -> {
+                """
+                DEVELOPER_ERROR (10)
+
+                OAuth configuration mismatch.
+
+                Please verify:
+                • Package name
+                • SHA-1 certificate
+                • Android OAuth client
+                • Web OAuth client
+                • google-services.json
+
+                Current package:
+                com.example.dailyzikrtracker
+
+                Current Web Client:
+                $WEB_CLIENT_ID
+                """.trimIndent()
+            }
+
+            12501 -> {
+                "Google Sign-In cancelled by user."
+            }
+
+            12500 -> {
+                "Google Sign-In configuration error (12500)."
+            }
+
+            7 -> {
+                "Network error. Please check your internet connection."
+            }
+
+            else -> {
+                """
+                Google Sign-In failed.
+
+                Error code: ${exception.statusCode}
+
+                Message:
+                ${exception.message ?: "No additional message"}
+                """.trimIndent()
+            }
+        }
+    }
+
+    private fun buildFirebaseErrorMessage(
+        exception: Exception?
+    ): String {
+
+        return """
+            Firebase Sign-In failed.
+
+            ${exception?.message ?: "Unknown Firebase error"}
+        """.trimIndent()
+    }
+
+    private fun showError(
+        message: String
+    ) {
+
+        Toast.makeText(
+            this,
+            message,
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     companion object {
@@ -360,6 +336,11 @@ class MainActivity : ComponentActivity() {
         private const val RC_SIGN_IN = 9001
     }
 }
+
+
+/* ============================================================
+   MAIN APP
+   ============================================================ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -442,10 +423,11 @@ fun MainApp(
 
                     onClick = {
 
-                        selectedScreen =
-                            "home"
+                        selectedScreen = "home"
 
-                        navController.navigate("home") {
+                        navController.navigate(
+                            "home"
+                        ) {
 
                             launchSingleTop = true
                         }
@@ -492,10 +474,11 @@ fun MainApp(
 
                     onClick = {
 
-                        selectedScreen =
-                            "report"
+                        selectedScreen = "report"
 
-                        navController.navigate("report") {
+                        navController.navigate(
+                            "report"
+                        ) {
 
                             launchSingleTop = true
                         }
@@ -549,6 +532,7 @@ fun MainApp(
 
             modifier =
                 Modifier.padding(padding)
+
         ) {
 
             composable("home") {
@@ -570,6 +554,11 @@ fun MainApp(
     }
 }
 
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+
 @Composable
 fun LoginScreen(
     onGoogleClick: () -> Unit
@@ -582,6 +571,7 @@ fun LoginScreen(
 
         color =
             DarkBlue
+
     ) {
 
         Column(
@@ -596,6 +586,7 @@ fun LoginScreen(
 
             verticalArrangement =
                 Arrangement.Center
+
         ) {
 
             Surface(
@@ -608,19 +599,25 @@ fun LoginScreen(
 
                 modifier =
                     Modifier.size(96.dp)
+
             ) {
 
                 Box(
 
                     contentAlignment =
                         Alignment.Center
+
                 ) {
 
                     Text(
+
                         text = "ذکر",
+
                         fontSize = 38.sp,
+
                         fontWeight =
                             FontWeight.Bold,
+
                         color =
                             DarkBlue
                     )
@@ -633,6 +630,7 @@ fun LoginScreen(
             )
 
             Text(
+
                 text =
                     "Daily Zikr Tracker",
 
@@ -691,6 +689,7 @@ fun LoginScreen(
                     Modifier
                         .fillMaxWidth()
                         .height(54.dp)
+
             ) {
 
                 Text(
@@ -708,6 +707,11 @@ fun LoginScreen(
         }
     }
 }
+
+
+/* ============================================================
+   ZIKR HOME
+   ============================================================ */
 
 @Composable
 fun ZikrHomeScreen(
@@ -751,10 +755,11 @@ fun ZikrHomeScreen(
                     zikrItems.associate {
 
                         it.key to
-                                (
-                                    doc.getLong(it.key)
-                                        ?: 0L
-                                    )
+                            (
+                                doc.getLong(
+                                    it.key
+                                ) ?: 0L
+                            )
                     }
 
                 loading = false
@@ -777,6 +782,7 @@ fun ZikrHomeScreen(
 
             contentAlignment =
                 Alignment.Center
+
         ) {
 
             CircularProgressIndicator(
@@ -797,6 +803,7 @@ fun ZikrHomeScreen(
 
         verticalArrangement =
             Arrangement.spacedBy(12.dp)
+
     ) {
 
         item {
@@ -819,8 +826,7 @@ fun ZikrHomeScreen(
             Text(
 
                 text =
-                    "Enter the number you have recited and save it. " +
-                            "The amount will be added to your lifetime total.",
+                    "Enter the number you have recited and save it. The amount will be added to your lifetime total.",
 
                 color =
                     TextDark,
@@ -840,30 +846,28 @@ fun ZikrHomeScreen(
 
             ZikrEntryCard(
 
-                item =
-                    item,
+                item = item,
 
                 input =
-                    inputs[item.key]
-                        ?: "",
+                    inputs[item.key] ?: "",
 
                 total =
-                    totals[item.key]
-                        ?: 0L,
+                    totals[item.key] ?: 0L,
 
-                onInputChange =
-                    { value ->
+                onInputChange = { value ->
 
-                        val filtered =
-                            value.filter {
-                                it.isDigit()
-                            }
+                    val filtered =
+                        value.filter {
+                            it.isDigit()
+                        }
 
-                        inputs =
-                            inputs + (
-                                    item.key to filtered
-                                    )
-                    },
+                    inputs =
+                        inputs +
+                            (
+                                item.key to
+                                    filtered
+                            )
+                },
 
                 onSave = {
 
@@ -881,8 +885,7 @@ fun ZikrHomeScreen(
                     }
 
                     val current =
-                        totals[item.key]
-                            ?: 0L
+                        totals[item.key] ?: 0L
 
                     val newTotal =
                         current + amount
@@ -893,23 +896,29 @@ fun ZikrHomeScreen(
                         .set(
 
                             mapOf(
-                                item.key to newTotal
+                                item.key to
+                                    newTotal
                             ),
 
                             SetOptions.merge()
+
                         )
 
                         .addOnSuccessListener {
 
                             totals =
-                                totals + (
-                                        item.key to newTotal
-                                        )
+                                totals +
+                                    (
+                                        item.key to
+                                            newTotal
+                                    )
 
                             inputs =
-                                inputs + (
-                                        item.key to ""
-                                        )
+                                inputs +
+                                    (
+                                        item.key to
+                                            ""
+                                    )
                         }
                 }
             )
@@ -935,12 +944,14 @@ fun ZikrHomeScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
+
             ) {
 
                 Column(
 
                     modifier =
                         Modifier.padding(18.dp)
+
                 ) {
 
                     Text(
@@ -975,6 +986,11 @@ fun ZikrHomeScreen(
     }
 }
 
+
+/* ============================================================
+   ZIKR ENTRY CARD
+   ============================================================ */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZikrEntryCard(
@@ -990,6 +1006,7 @@ fun ZikrEntryCard(
 
     onSave:
         () -> Unit
+
 ) {
 
     Card(
@@ -1005,17 +1022,20 @@ fun ZikrEntryCard(
 
         elevation =
             CardDefaults.cardElevation(
-                defaultElevation = 3.dp
+                defaultElevation =
+                    3.dp
             ),
 
         modifier =
             Modifier.fillMaxWidth()
+
     ) {
 
         Column(
 
             modifier =
                 Modifier.padding(16.dp)
+
         ) {
 
             Text(
@@ -1045,6 +1065,7 @@ fun ZikrEntryCard(
 
                 verticalAlignment =
                     Alignment.CenterVertically
+
             ) {
 
                 OutlinedTextField(
@@ -1059,7 +1080,8 @@ fun ZikrEntryCard(
                         Text("Enter count")
                     },
 
-                    singleLine = true,
+                    singleLine =
+                        true,
 
                     keyboardOptions =
                         KeyboardOptions(
@@ -1109,6 +1131,7 @@ fun ZikrEntryCard(
 
                     modifier =
                         Modifier.height(54.dp)
+
                 ) {
 
                     Text(
@@ -1143,12 +1166,18 @@ fun ZikrEntryCard(
     }
 }
 
+
+/* ============================================================
+   REPORT SCREEN
+   ============================================================ */
+
 @Composable
 fun ReportScreen(
 
     db: FirebaseFirestore,
 
     auth: FirebaseAuth
+
 ) {
 
     var totals by remember {
@@ -1180,11 +1209,11 @@ fun ReportScreen(
                         zikrItems.associate {
 
                             it.key to
-                                    (
-                                        doc.getLong(
-                                            it.key
-                                        ) ?: 0L
-                                        )
+                                (
+                                    doc.getLong(
+                                        it.key
+                                    ) ?: 0L
+                                )
                         }
                 }
             }
@@ -1203,6 +1232,7 @@ fun ReportScreen(
 
         verticalArrangement =
             Arrangement.spacedBy(10.dp)
+
     ) {
 
         item {
@@ -1256,6 +1286,7 @@ fun ReportScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
+
             ) {
 
                 Column(
@@ -1265,6 +1296,7 @@ fun ReportScreen(
 
                     horizontalAlignment =
                         Alignment.CenterHorizontally
+
                 ) {
 
                     Text(
@@ -1303,8 +1335,7 @@ fun ReportScreen(
         items(zikrItems) { item ->
 
             val total =
-                totals[item.key]
-                    ?: 0L
+                totals[item.key] ?: 0L
 
             Card(
 
@@ -1319,6 +1350,7 @@ fun ReportScreen(
 
                 modifier =
                     Modifier.fillMaxWidth()
+
             ) {
 
                 Row(
@@ -1333,6 +1365,7 @@ fun ReportScreen(
 
                     verticalAlignment =
                         Alignment.CenterVertically
+
                 ) {
 
                     Text(
@@ -1372,6 +1405,11 @@ fun ReportScreen(
         }
     }
 }
+
+
+/* ============================================================
+   THEME
+   ============================================================ */
 
 @Composable
 fun DailyZikrTheme(
