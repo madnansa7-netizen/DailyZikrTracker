@@ -50,15 +50,27 @@ jobs:
 
           echo "APK found: $APK"
           echo ""
+
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner was not found."
+            exit 1
+          fi
+
+          echo "Using apksigner:"
+          echo "$APKSIGNER"
+          echo ""
+
           echo "Certificate fingerprints:"
-          keytool -printcert -jarfile "$APK"
+          "$APKSIGNER" verify --print-certs "$APK"
 
           echo ""
           echo "========================================"
           echo "SHA-1 ONLY"
           echo "========================================"
 
-          keytool -printcert -jarfile "$APK" | grep "SHA1:"
+          "$APKSIGNER" verify --print-certs "$APK" | grep -i "SHA-1"
 
           echo "========================================"
 
